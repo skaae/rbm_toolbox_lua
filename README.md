@@ -10,17 +10,83 @@ The following is supported:
     * Discriminative training objective [2,7]
     * Hybrid training objective [2,7]
     * Semi-supervised learning [2,7]
- * CD - k (contrastive divergence k) [5]    (cd1, cdk=TODO)
- * PCD (persistent contrastive divergence) [6] (TODO)
+ * CD - k (contrastive divergence k) [5].(cd1, cdk=TODO)
+ * PCD (persistent contrastive divergence) [6].(TODO)
  * RBM sampling functions (pictures / movies) (TODO)
  * RBM Classification support [2,7]
  * Regularization: L1, L2, sparsity, early-stopping, dropout [1],dropconnect[10], momentum [3] 
 
 # Installation
 
- 1. Install torch7:Follow [these](https://github.com/torch/torch7/wiki/Cheatsheet#installing-and-running-torch) instructions
+ 1. Install torch7: Follow [these](https://github.com/torch/torch7/wiki/Cheatsheet#installing-and-running-torch) instructions
  2. download this repository: `git clone https://github.com/skaae/rbm_toolbox_lua.git`
  3. Execute your scripts from the repository folder
+
+# Settings
+
+## Setting up the RBM and training
+A RBM with standard settings can be trained and with:
+
+```LUA
+opts = {}
+rbm = rbmsetup(opts,x_train, y_train)
+rbm = rbmtrain(rbm,x_train,y_train,x_val,y_val)
+```
+
+Passing in an empty opts table will use the default value. The following code shows valid opts fields 
+and their default value:
+
+```LUA
+ -- Max epochs, lr and Momentum
+rbm.numepochs       = opts.numepochs or 5
+rbm.learningrate    = opts.learningrate or 0.05
+rbm.momentum        = opts.momentum or 0
+
+-- OBJECTIVE
+rbm.alpha           = opts.alpha or 1
+rbm.beta            = opts.beta or 0
+
+-- REGULARIZATION
+rbm.dropout         = opts.dropout or 0
+rbm.dropconnect     = opts.dropconnect or 0
+rbm.L1              = opts.L1 or 0
+rbm.L2              = opts.L2 or 0
+rbm.sparsity        = opts.sparsity or 0
+rbm.patience        = opts.patience or 15
+
+-- -
+rbm.tempfile        = opts.tempfile or "temp_rbm.asc"
+rbm.isgpu           = opts.isgpu or 0
+```
+
+## Passing in data
+Training, valdiation and semisupervised data are arguments to `rbmtrain`:
+
+```LUA
+rbmtrain(rbm,x_train,y_train,x_val,y_val,x_semisup)
+```
+
+validation data and semisupervised data may be ommitted.
+
+## Training objective
+
+The training behavior is controlled with `opts.alpha`
+
+ * opts.alpha =     0 : Discriminative training
+ * opts.alpha =     1 : Generative training
+ * 0 < opts.alpha < 1 : Hybrid training
+
+ Amount of semisupervised training is controlled with `opts.beta`
+
+## Regularization
+
+ * `opts.L1`: specify the regularization weight
+ * `opts.L2`: specify the regularization weight
+ * `opts.sparsity`: implemented as in [7]. Specify the sparsity being subtracted from biases after each weight update.
+ * `opts.dropout`: dropout on hidden units. Specify the 1-probability of being dropped. see [1]
+ * `opts.dropconnect`: dropout on connections, specify 1-probability of connection being zeroed, see [10]
+ * Early-stopping: Always enabled. Set the patience with opts.patience. To disable
+ early stopping set patience to infinity.
 
 # Examples
 
@@ -28,25 +94,17 @@ Reproducing results from [7], specifically the results from the table reproduced
 
 | Model  |Objective                                         | Errror (%)    | Example  |
 |---     |---                                               |---            |---       |
-|        | Generative(lr = 0.005, H = 6000)                 |   3.39        |    1     |
-|ClassRBM| Discriminative(lr = 0.05, H = 500)               |   1.81        |    2     |
+|ClassRBM| Discriminative(lr = 0.05, H = 500)               |   1.81        |    1     |
+|        | Generative(lr = 0.005, H = 6000)                 |   3.39        |    2     |
 |        | Hybrid(alpha = 0.01, lr = 0.05, H = 1500)        |   1.28        |    3     |
 |        | Sparse Hybrid( idem + H = 3000, sparsity=10^-4)  |   1.16        |    4     |
 lr = learning rate
 H = hidden layer size
 
-August 2014: Documentation and Examples will be added in the coming weeks.
-
-
 ## Example 1 - Discriminative Training
 
 Trains a discriminative RBM with 500 hidden units. The toolbox supports discriminative, generative,
-hybrid training as described in [7]. The training behavior is controlled with `opts.alpha`
-
- * opts.alpha =     0 : Discriminative training
- * opts.alpha =     1 : Generative training
- * 0 < opts.alpha < 1 : Hybrid training
- 
+hybrid training as described in [7].
 
 ```LUA
 require('torch')
@@ -93,11 +151,49 @@ print('Test error       : ', 1-acc_test)
 
 ```
 
-Train error      : 	2.000000000002e-05	
-Validation error : 	0.0183	
-Test error       : 	0.0188	
+The results are:
+ * Train error      : 	2.000000000002e-05	
+ * Validation error : 	0.0183	
+ * Test error       : 	0.0188	
+Which is comparable to the results reported in [7].
+
+The figure below shows the training and validation error during trainig:
 
 <img src="/uploads/discriminative_ex1.png" height="400" width="400"> 
+
+Finally the learned filters can be vizualized:
+
+<img src="/uploads/rbmW_ex1.png" height="400" width="400"> 
+
+The graphs are created in MATLAB. I created a simple script to pass RBM's from Torch to MATLAB
+
+In Torch do:
+
+```LUA
+-- Load RBM or use one you have trained
+rbm = loadrbm('discriminative_final.asc')
+
+-- Save the RBM to CSV files.
+writerbmtocsv(rbm)  -- optinally specify save folder as 2. arg
+```
+
+Launch MATLAB browse to the folder where the CSV's are saved, then 
+
+```MATLAB
+rbm = loadrbm() % optonally spcify another path to CSV's
+figure;
+rbm = loadrbm();
+plotx = 1:numel(rbm.err_val);
+plot(plotx,rbm.err_val,plotx,rbm.err_train);
+
+prettyfig(gca,title('Discriminative training'),...
+          xlabel('Epochs'),ylabel('Error(%)'),legend({'Validation','Training'}))
+grid on
+
+figure;
+visualize(rbm.W(1:100
+axis off
+```
 
 # References
 
