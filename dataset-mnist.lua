@@ -59,3 +59,18 @@ function mnist.loadFlatDataset(fileName, maxLoad)
 
    return dataset
 end
+
+function mnist.createdatasets(mnist_folder,rescale)     
+     if not rescale then rescale = 1 end
+     mnist.unpack(mnist_folder)
+     local data_test = mnist.loadFlatDataset(paths.concat(mnist_folder,'test.th7') )
+     local data_train = mnist.loadFlatDataset(paths.concat(mnist_folder,'train.th7') )
+     local sc = function(s) return math.floor(s*rescale) end
+     local x_train = data_train.x[{{1,sc(50000)},{}}]
+     local y_train = data_train.y_vec[{{1,sc(50000)},{}}]
+     local x_val = data_train.x[{{sc(50001),sc(60000)},{}}]
+     local y_val= data_train.y_vec[{{sc(50001),sc(60000)},{}}]
+     local x_test = data_test.x
+     local y_test = data_test.y_vec
+     return x_train, y_train, x_val, y_val, x_test, y_test
+end

@@ -306,3 +306,5 @@ end
      csvigo.save{data=readerr(rbm.err_train), path=paths.concat(folder,'rbmerr_train.csv')} 
      csvigo.save{data=readerr(rbm.err_recon_train), path=paths.concat(folder,'rbmerr_recon_train.csv')} 
 end
+
+

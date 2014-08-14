@@ -1,6 +1,4 @@
---require('nn')
 require('torch')
--- load rbm functions
 require('rbm')
 require('dataset-mnist')
 require('ProFi')
@@ -8,46 +6,20 @@ require 'paths'
 
 torch.manualSeed(101)
 torch.setdefaulttensortype('torch.FloatTensor')
-torch.setnumthreads(4)
 
---------------------------
---       LOAD DATA      --
---------------------------
-rescale = 1   -- Recales dataset, for testing 
-
--- Download mnist if not present
---mnist_folder = '../MNISTDATA'
---mnist.download( mnist_folder )
 
 mnist_folder = '../mnist-th7'
-mnist.unpack(mnist_folder)
-
-data_test = mnist.loadFlatDataset(paths.concat(mnist_folder,'test.th7') )
-data_train = mnist.loadFlatDataset(paths.concat(mnist_folder,'train.th7') )
-
-sc = function(s) return math.floor(s*rescale) end
-
-
---GPU?
---require 'cutorch'
---print(  cutorch.getDeviceProperties(cutorch.getDevice()) )
-
-local x_train = data_train.x[{{1,sc(50000)},{}}]
-local y_train = data_train.y_vec[{{1,sc(50000)},{}}]
-local x_val = data_train.x[{{sc(50001),sc(60000)},{}}]
-local y_val= data_train.y_vec[{{sc(50001),sc(60000)},{}}]
-local x_test = data_test.x
-local y_test = data_test.y_vec
+rescale = 1
+mnist.createdatasets(mnist_folder,rescale)     
+--------------------------
+--       SETUP RBM      --
+--------------------------
 local opts = {}
-
-
---------------------------
---       SETUP DATA      --
---------------------------
 tempfile = 'discriminative_temp.asc'
 tempfolder = '../rbmtemp'
-finalfile = 'discriminative_final.asc'
-os.execute('mkdir -p ' .. tempfolder)   -- Create save folder if it does not exists
+os.execute('mkdir -p ' .. tempfolder)              -- create tempfolder if it does not exist
+finalfile = 'discriminative_final.asc'             -- Name of final RBM file
+os.execute('mkdir -p ' .. tempfolder)              -- Create save folder if it does not exists
 opts.tempfile = paths.concat(tempfolder,tempfile)  -- current best is saved to this folder
 opts.n_hidden     = 500
 opts.numepochs    = 200
