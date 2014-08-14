@@ -18,7 +18,9 @@ The following is supported:
 
 # Installation
 
-Requires Torch7 to be intalled. Follow [these](https://github.com/torch/torch7/wiki/Cheatsheet#installing-and-running-torch) instructions
+ 1. Install torch7:Follow [these](https://github.com/torch/torch7/wiki/Cheatsheet#installing-and-running-torch) instructions
+ 2. download this repository: `git clone https://github.com/skaae/rbm_toolbox_lua.git`
+ 3. Execute your scripts from the repository folder
 
 # Examples
 
@@ -36,9 +38,15 @@ H = hidden layer size
 August 2014: Documentation and Examples will be added in the coming weeks.
 
 
-Example 1 - Discriminative Training
+## Example 1 - Discriminative Training
 
-Trains a discriminative RBM 
+Trains a discriminative RBM with 500 hidden units. The toolbox supports discriminative, generative,
+hybrid training as described in [7]. The training behavior is controlled with `opts.alpha`
+
+ * opts.alpha =     0 : Discriminative training
+ * opts.alpha =     1 : Generative training
+ * 0 < opts.alpha < 1 : Hybrid training
+ 
 
 ```LUA
 require('torch')
