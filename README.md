@@ -1,8 +1,8 @@
 RBM Toolbox for Torch
 ===============
 
-RBM toolbox is a Torch7 toolbox for online training of RBM's. A MATLAB version exists at [LINK
-](https://github.com/skaae/rbm_toolbox).
+RBM toolbox is a Torch7 toolbox for online training of RBM's. A MATLAB version exists at 
+[LINK](https://github.com/skaae/rbm_toolbox).
 
 The following is supported:
  * Support for training RBM's with class labels including:
@@ -15,6 +15,10 @@ The following is supported:
  * RBM sampling functions (pictures / movies) (TODO)
  * RBM Classification support [2,7]
  * Regularization: L1, L2, sparsity, early-stopping, dropout [1],dropconnect[10], momentum [3] 
+
+# Installation
+
+Requires Torch7 to be intalled. Follow [these](https://github.com/torch/torch7/wiki/Cheatsheet#installing-and-running-torch) instructions
 
 # Examples
 
@@ -33,6 +37,8 @@ August 2014: Documentation and Examples will be added in the coming weeks.
 
 
 Example 1 - Discriminative Training
+
+Trains a discriminative RBM 
 
 ```LUA
 require('torch')
