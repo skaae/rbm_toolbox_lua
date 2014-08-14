@@ -43,11 +43,13 @@ for epoch = 1, rbm.numepochs do
           restoreorgweights(rbm)                               -- restore weights from before dropping                        
           updateweights(rbm)                                   -- updates W,U,b,c and d, formulae: X =  X + vX
           
+          
           if (i %  5000) == 0 then
                io.write(".") 
                io.flush()
           end
           
+          -- Force garbagecollector to collect. Reduces memory with atleast factor of 3.
           if (i % 100) == 0 then
                collectgarbage()
           end
@@ -73,10 +75,11 @@ for epoch = 1, rbm.numepochs do
           best = '***'
      else
           patience = patience - 1 
+          best = ''
      end
      end
      
-     print(string.format("%i/%i -LR: %f, MOM %f -  Recon err: %4.1f err TR: %f err VAL: %f  time: %f Patience %i  %s", epoch, rbm.numepochs,                     rbm.learningrate,rbm.momentum, rbm.cur_err[1],err_train,err_val or 1/0,epoch_time, patience,best or ''))
+     print(string.format("%i/%i -LR: %f, MOM %f -  Recon err: %4.1f err TR: %f err VAL: %f  time: %f Patience %i  %s", epoch, rbm.numepochs,                     rbm.learningrate,rbm.momentum, rbm.cur_err[1],err_train,err_val or 1/0,epoch_time, patience,best))
      
      
      if patience < 0 then  -- Stop training
