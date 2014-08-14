@@ -40,6 +40,13 @@ function printRBM(rbm,xt,xv,xs)
      print("")
      
      
+     if rbm.traintype == 0 then traintype = 'CD' else traintype = 'PCD' end
+     print("TRAINING TYPE")
+     print(string.format("Type                         :  %s",traintype))
+     print(string.format("Gibbs steps                  :  %i",rbm.cdn))
+     if traintype == 'PCD' then print(string.format("Number of PCD chains         :  %i",rbm.npcdchains)) end
+     
+     print("")
      print("REGULARIZATON")
      print(string.format("Patience                     :  %i",rbm.patience))
      print(string.format("Sparisty                     :  %f",rbm.sparsity))
@@ -175,7 +182,7 @@ function initcrbm(m,n)
 end
 
 
-function rbmsetup(opts,x,y)
+function rbmsetup(opts,x,y,x_semisup)
 	local n_samples = x:size(1)
 	local n_visible = x:size(2)
 	local n_classes = y:size(2)
@@ -201,9 +208,6 @@ function rbmsetup(opts,x,y)
 	rbm.dc = torch.Tensor(rbm.c:size()):zero()
 	rbm.dd = torch.Tensor(rbm.d:size()):zero()
      
-     rbm.err_recon_train = torch.Tensor(rbm.numepochs):fill(-1)
-     rbm.err_train       = torch.Tensor(rbm.numepochs):fill(-1)
-     rbm.err_val         = torch.Tensor(rbm.numepochs):fill(-1)
      rbm.rand  = function(m,n) return torch.rand(m,n) end 
 	rbm.n_classes       = y:size(2) 
 	rbm.n_visible       = x:size(2)
@@ -218,6 +222,9 @@ function rbmsetup(opts,x,y)
 	rbm.numepochs       = opts.numepochs or 5
 	rbm.learningrate    = opts.learningrate or 0.05
      rbm.momentum        = opts.momentum or 0
+     rbm.traintype       = opts.traintype or 'CD'   -- CD or PCD
+     rbm.cdn             = opts.cdn or 1
+     rbm.npcdchains      = opts.npcdchains or 100
      
      -- OBJECTIVE
      rbm.alpha           = opts.alpha or 1
@@ -234,6 +241,25 @@ function rbmsetup(opts,x,y)
      -- -
      rbm.tempfile        = opts.tempfile or "temp_rbm.asc"
      rbm.isgpu           = opts.isgpu or 0
+     
+     rbm.err_recon_train = torch.Tensor(rbm.numepochs):fill(-1)
+     rbm.err_train       = torch.Tensor(rbm.numepochs):fill(-1)
+     rbm.err_val         = torch.Tensor(rbm.numepochs):fill(-1)
+     
+     if rbm.traintype == 'PCD' then  -- init PCD chains
+          rbm.traintype = 1
+          local kk =torch.randperm(rbm.n_samples)
+          rbm.chx =  x[{kk,{} }]:clone()
+          rbm.chy =  y[{kk,{} }]:clone()
+          if rbm.beta > 0 then
+               local kk_semisup = torch.randperm(x_semisup:size(1))
+               kk_semisup =  kk_semisup[{ {1, rbm.npcdchains} }]
+               rbm.chx_semisup = x_semisup[{kk_semisup,{} }]:clone()
+               rbm.chy_semisup = y_semisup[{kk_semisup,{} }]:clone()
+          end
+     else
+          rbm.traintype = 0
+     end     
      
 	return(rbm)
 end

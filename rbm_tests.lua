@@ -10,9 +10,10 @@ torch.setnumthreads(4)
 
 
 
-mnist.download()
-data_test = mnist.loadFlatDataset('mnist-th7/test.th7')
-data_train = mnist.loadFlatDataset('mnist-th7/train.th7')
+
+mnist_folder = '../mnist-th7'
+rescale = 1
+x_train, y_train, x_val, y_val, x_test, y_test = mnist.createdatasets(mnist_folder,rescale) 
 
 
 opts = {}
@@ -86,6 +87,9 @@ rbm.temp_file = "blabla"
 rbm.patience = 15
 rbm.one_by_classes = torch.ones(1,rbm.U:size(2))
 rbm.hidden_by_one  = torch.ones(rbm.W:size(1),1)
+rbm.traintype = 0 -- CD
+rbm.npcdchains = 1
+rbm.cdn = 1
 
 ---------------------------------------------------------
 -- TRUE VALUES rbm-util
@@ -188,7 +192,7 @@ local p_y_given_x =pygivenx(rbm,x)
 ---------------------------------------------------------
 --- TEST RBM-UTIL FUNCTIONS
 ---------------------------------------------------------
-assert(checkequality(h0, h0_true,-4,true),'Check h0 failed')
+assert(checkequality(h0, h0_true,-4),'Check h0 failed')
 assert(checkequality(h0_rnd, h0_rnd_true),'Check h0_rnd failed')
 assert(checkequality(vkx, vkx_true),'Check vkx failed')
 assert(checkequality(vkx_rnd, vkx_rnd_true),'Check vkx_rnd failed')

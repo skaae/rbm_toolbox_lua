@@ -21,6 +21,8 @@ os.execute('mkdir -p ' .. tempfolder)              -- create tempfolder if it do
 local finalfile = 'discriminative_final.asc'             -- Name of final RBM file
 os.execute('mkdir -p ' .. tempfolder)              -- Create save folder if it does not exists
 opts.tempfile = paths.concat(tempfolder,tempfile)  -- current best is saved to this folder
+opts.traintype = 'CD'
+opts.cdn = 1
 opts.n_hidden     = 500
 opts.numepochs    = 200
 opts.patience     = 15                             -- early stopping is always enabled, to disble set this to inf = 1/0   

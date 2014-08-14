@@ -3,9 +3,34 @@ ProFi = require('ProFi')
 
 -- Calculate generative weights
 -- tcwx is  tcwx = torch.mm( x,rbm.W:t() ):add( rbm.c:t() )
-function grads.generative(rbm,x,y,tcwx)
-     local h0 = sigm( torch.add(tcwx, torch.mm(y,rbm.U:t() ) ) ) --   UP
-     local h0_rnd = sampler(h0,rbm.rand)                         --   |         
+function grads.generative(rbm,x,y,tcwx,chx,chy)
+     
+     print(rbm)
+     local visx_rnd, visy_rnd, h0, h0_rnd,ch_idx
+     h0 = sigm( torch.add(tcwx, torch.mm(y,rbm.U:t() ) ) ) --   UP
+     
+     
+     if rbm.traintype == 0 then -- CD
+          h0_rnd = sampler(h0,rbm.rand)   -- use training data as start
+     else
+          -- use pcd chains as start
+          ch_idx =  math.floor( (torch.rand(1) * rbm.npcdchains)[1])
+          h0_rnd = sampler( rbmup(rbm,chx[ch_idx], chy[ch_idx]), rbm.rand)
+     end
+     
+     
+     
+    
+    for i = 1, (rbm.cdn - 1) do
+       visx_rnd = sampler( rbmdownx( rbm, h0_rnd ), rbm.rand)   
+       visy_rnd = samplevec( rbmdowny( rbm, h0_rnd), rbm.rand)
+       hid_rnd  = sampler( rbmup(rbm,visx_rnd, visy_rnd), rbm.rand)
+    end
+     
+
+     
+     
+     
      local vkx = rbmdownx(rbm,h0_rnd)                            -- DOWN    
      local vkx_rnd = sampler(vkx,rbm.rand)                       --   |
      local vky = rbmdowny(rbm,h0_rnd)                            --   |
@@ -68,7 +93,7 @@ function grads.calculategrads(rbm,x_tr,y_tr,x_semi)
 
       -- GENERATIVE GRADS
       if rbm.alpha > 0 then
-        dW_gen, dU_gen, db_gen, dc_gen, dd_gen, vkx  = grads.generative(rbm,x_tr,y_tr,tcwx)
+        dW_gen, dU_gen, db_gen, dc_gen, dd_gen, vkx  = grads.generative(rbm,x_tr,y_tr,tcwx,rbm.chx,rbm.chy)
         rbm.dW:add( dW_gen:mul( rbm.alpha ))
         rbm.dU:add( dU_gen:mul( rbm.alpha ))
         rbm.db:add( db_gen:mul( rbm.alpha ))
@@ -93,7 +118,7 @@ function grads.calculategrads(rbm,x_tr,y_tr,x_semi)
       if rbm.beta > 0 then
                p_y_given_x = p_y_given_x or pygivenx(rbm,x_tr,tcwx)
                y_semi = samplevec(p_y_given_x,rbm.rand):resize(1,rbm.n_classes)
-               dW_semi, dU_semi,db_semi, dc_semi, dd_semi = grads.generative(rbm,x_semi,y_semi,tcwx)
+               dW_semi, dU_semi,db_semi, dc_semi, dd_semi = grads.generative(rbm,x_semi,y_semi,tcwx,rbm.chx_semisup,rbm.chy_semisup)
                rbm.dW:add( dW_semi:mul( rbm.beta ))
                rbm.dU:add( dU_semi:mul( rbm.beta ))
                rbm.db:add( db_semi:mul( rbm.beta ))
