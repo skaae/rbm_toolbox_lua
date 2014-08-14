@@ -4,8 +4,6 @@ ProFi = require('ProFi')
 -- Calculate generative weights
 -- tcwx is  tcwx = torch.mm( x,rbm.W:t() ):add( rbm.c:t() )
 function grads.generative(rbm,x,y,tcwx,chx,chy)
-     
-     print(rbm)
      local visx_rnd, visy_rnd, h0, h0_rnd,ch_idx
      h0 = sigm( torch.add(tcwx, torch.mm(y,rbm.U:t() ) ) ) --   UP
      
@@ -14,8 +12,8 @@ function grads.generative(rbm,x,y,tcwx,chx,chy)
           h0_rnd = sampler(h0,rbm.rand)   -- use training data as start
      else
           -- use pcd chains as start
-          ch_idx =  math.floor( (torch.rand(1) * rbm.npcdchains)[1])
-          h0_rnd = sampler( rbmup(rbm,chx[ch_idx], chy[ch_idx]), rbm.rand)
+          ch_idx =  math.floor( (torch.rand(1) * rbm.npcdchains)[1]) +1
+          h0_rnd = sampler( rbmup(rbm, chx[ch_idx]:resize(1,x:size(2)), chy[ch_idx]:resize(1,y:size(2))), rbm.rand)
      end
      
      
