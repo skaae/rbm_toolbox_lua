@@ -277,6 +277,7 @@ end
 -- Stupid function to save an RBM in CSV...
 -- Use loadrbm.m to load the RBM in matlab
 function writerbmtocsv(rbm,folder)
+     folder = folder or ''
      require('csvigo')
      function createtable(weight)
           local weighttable = {}
