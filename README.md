@@ -10,8 +10,8 @@ The following is supported:
     * Discriminative training objective [2,7]
     * Hybrid training objective [2,7]
     * Semi-supervised learning [2,7]
- * CD - k (contrastive divergence k) [5].(cd1, cdk=TODO)
- * PCD (persistent contrastive divergence) [6].(TODO)
+ * CD - k (contrastive divergence k) [5]
+ * PCD (persistent contrastive divergence) [6]
  * RBM sampling functions (pictures / movies) (TODO)
  * RBM Classification support [2,7]
  * Regularization: L1, L2, sparsity, early-stopping, dropout [1],dropconnect[10], momentum [3] 
@@ -41,6 +41,9 @@ and their default value:
 rbm.numepochs       = opts.numepochs or 5
 rbm.learningrate    = opts.learningrate or 0.05
 rbm.momentum        = opts.momentum or 0
+rbm.traintype       = opts.traintype or 'CD'   -- CD or PCD
+rbm.cdn             = opts.cdn or 1
+rbm.npcdchains      = opts.npcdchains or 100
 
 -- OBJECTIVE
 rbm.alpha           = opts.alpha or 1
@@ -180,9 +183,8 @@ writerbmtocsv(rbm)  -- optinally specify save folder as 2. arg
 Launch MATLAB browse to the folder where the CSV's are saved, then 
 
 ```MATLAB
-rbm = loadrbm() % optonally spcify another path to CSV's
 figure;
-rbm = loadrbm();
+rbm = loadrbm();  % optonally spcify another path to CSV's
 plotx = 1:numel(rbm.err_val);
 plot(plotx,rbm.err_val,plotx,rbm.err_train);
 
