@@ -221,6 +221,7 @@ function rbmsetup(opts,x,y)
      rbm.err_val    = torch.Tensor(rbm.numepochs):fill(-1)
      rbm.patience = opts.patience or 15
      rbm.tempfile = opts.tempfile or "temp_rbm.asc"
+     rbm.isgpu    = opts.isgpu or 0
      
      
      -- prealocate som matrices
@@ -264,4 +265,44 @@ function checkequality(t1,t2,prec,pr)
 
 	return ret
 
+end
+
+-- Stupid function to save an RBM in CSV...
+-- Use loadrbm.m to load the RBM in matlab
+function writerbmtocsv(rbm,folder)
+     require('csvigo')
+     function createtable(weight)
+          local weighttable = {}
+          for i = 1,weight:size(1) do   --rows
+               local row = {}
+               for j = 1,weight:size(2) do -- columns   
+                    row[j] = weight[{i,j}]
+               end
+          weighttable[i] = row
+          end
+
+          return weighttable
+
+end
+
+     function readerr(err)
+          e = {}
+          for i = 1, err:size(1) do 
+               if err[i] ~= -1 then
+                    e[i] = err[i]
+               end
+          end
+          ret = {}
+          ret[1] = e
+          return(ret)
+      end
+       
+     csvigo.save{data=createtable(rbm.W), path=paths.concat(folder,'rbmW.csv')} 
+     csvigo.save{data=createtable(rbm.U), path=paths.concat(folder,'rbmU.csv')} 
+     csvigo.save{data=createtable(rbm.b), path=paths.concat(folder,'rbmb.csv')} 
+     csvigo.save{data=createtable(rbm.c), path=paths.concat(folder,'rbmc.csv')} 
+     csvigo.save{data=createtable(rbm.d), path=paths.concat(folder,'rbmd.csv')} 
+     csvigo.save{data=readerr(rbm.err_val), path=paths.concat(folder,'rbmerr_val.csv')} 
+     csvigo.save{data=readerr(rbm.err_train), path=paths.concat(folder,'rbmerr_train.csv')} 
+     csvigo.save{data=readerr(rbm.err_recon_train), path=paths.concat(folder,'rbmerr_recon_train.csv')} 
 end
