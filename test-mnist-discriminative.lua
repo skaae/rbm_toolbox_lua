@@ -24,7 +24,10 @@ data_train = mnist.loadFlatDataset(paths.concat(mnist_folder,'train.th7') )
 sc = function(s) return math.floor(s*rescale) end
 
 
--- torch.setdefaulttensortype('torch.FloatTensor')-- GPU
+--GPU?
+--require 'cutorch'
+--print(  cutorch.getDeviceProperties(cutorch.getDevice()) )
+
 local x_train = data_train.x[{{1,sc(50000)},{}}]
 local y_train = data_train.y_vec[{{1,sc(50000)},{}}]
 local x_val = data_train.x[{{sc(50001),sc(60000)},{}}]
@@ -50,9 +53,16 @@ opts.patience     = 15                             -- early stopping is always e
 opts.learningrate = 0.05
 opts.alpha = 0
 opts.beta = 0
+opts.isgpu = 0
 
 -- DO Training
 local rbm = rbmsetup(opts,x_train, y_train)
 rbm = rbmtrain(rbm,x_train,y_train,x_val,y_val)
-
 saverbm(paths.concat(tempfolder,tempfile),rbm)
+acc_train = accuracy(rbm,x_train,y_train)
+acc_val = accuracy(rbm,x_val,y_val)
+acc_test = accuracy(rbm,x_test,y_test)
+print('Train accuracy      : ', acc_train)
+print('Validation accuracy : ', acc_val)
+print('Test accuracy       : ', acc_test)
+
