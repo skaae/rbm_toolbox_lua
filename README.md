@@ -166,7 +166,7 @@ The figure below shows the training and validation error during trainig:
 
 Finally the learned filters can be vizualized:
 
-<img src="/uploads/rbmW_ex1.png" height="400" width="400"> 
+<img src="/uploads/rbmW_ex1.png" height="550" width="550"> 
 
 The graphs are created in MATLAB. I created a simple script to pass RBM's from Torch to MATLAB
 
