@@ -200,34 +200,41 @@ function rbmsetup(opts,x,y)
 	rbm.db = torch.Tensor(rbm.b:size()):zero()
 	rbm.dc = torch.Tensor(rbm.c:size()):zero()
 	rbm.dd = torch.Tensor(rbm.d:size()):zero()
-
-
-	rbm.rand  = function(m,n) return torch.rand(m,n) end 
-	rbm.n_classes = n_classes 
-	rbm.n_visible = n_visible
-	rbm.n_samples = n_samples
-	rbm.numepochs = opts.numepochs or 5
-	rbm.learningrate = opts.learningrate or 0.05
-     rbm.alpha = opts.alpha or 1
-     rbm.beta = opts.beta or 0
-     rbm.momentum = opts.momentum or 0
-     rbm.dropout = opts.dropout or 0
-     rbm.dropconnect = opts.dropconnect or 0
-     rbm.L1 = opts.L1 or 0
-     rbm.L2 = opts.L2 or 0
-     rbm.sparsity = opts.sparsity or 0
-     rbm.err_recon_train    = torch.Tensor(rbm.numepochs):fill(-1)
-     rbm.err_train    = torch.Tensor(rbm.numepochs):fill(-1)
-     rbm.err_val    = torch.Tensor(rbm.numepochs):fill(-1)
-     rbm.patience = opts.patience or 15
-     rbm.tempfile = opts.tempfile or "temp_rbm.asc"
-     rbm.isgpu    = opts.isgpu or 0
      
+     rbm.err_recon_train = torch.Tensor(rbm.numepochs):fill(-1)
+     rbm.err_train       = torch.Tensor(rbm.numepochs):fill(-1)
+     rbm.err_val         = torch.Tensor(rbm.numepochs):fill(-1)
+     rbm.rand  = function(m,n) return torch.rand(m,n) end 
+	rbm.n_classes       = y:size(2) 
+	rbm.n_visible       = x:size(2)
+	rbm.n_samples       = x:size(1)
      
      -- prealocate som matrices
      rbm.one_by_classes  = torch.ones(1,rbm.U:size(2))
      rbm.hidden_by_one  = torch.ones(rbm.W:size(1),1)
-     --rbm.pre_alloc_U  = torch.zeros(rbm.U:size())
+
+
+     -- Max epochs, lr and Momentum
+	rbm.numepochs       = opts.numepochs or 5
+	rbm.learningrate    = opts.learningrate or 0.05
+     rbm.momentum        = opts.momentum or 0
+     
+     -- OBJECTIVE
+     rbm.alpha           = opts.alpha or 1
+     rbm.beta            = opts.beta or 0
+     
+     -- REGULARIZATION
+     rbm.dropout         = opts.dropout or 0
+     rbm.dropconnect     = opts.dropconnect or 0
+     rbm.L1              = opts.L1 or 0
+     rbm.L2              = opts.L2 or 0
+     rbm.sparsity        = opts.sparsity or 0
+     rbm.patience        = opts.patience or 15
+     
+     -- -
+     rbm.tempfile        = opts.tempfile or "temp_rbm.asc"
+     rbm.isgpu           = opts.isgpu or 0
+     
 	return(rbm)
 end
 
