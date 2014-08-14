@@ -71,7 +71,7 @@ for epoch = 1, rbm.numepochs do
           best_val_err = err_val
           patience = rbm.patience
           saverbm(rbm.tempfile,rbm) -- save current best
-          best_rbm = cprbm(rbm)   -- save best weights
+          best_rbm = cprbm(rbm)     -- save best weights
           best = '***'
      else
           patience = patience - 1 
@@ -144,14 +144,6 @@ function updategradsandmomentum(rbm)
       rbm.vb:add(rbm.db)
       rbm.vc:add(rbm.dc)
       rbm.vd:add(rbm.dd)
-     
-     
-     
-      --end
-
-
- 
-
 end
 
 function updateweights(rbm)
@@ -177,8 +169,8 @@ end
 
 function cprbm(rbm)
      newrbm = {}
-     newrbm.W =rbm.W:clone()
-     newrbm.U =rbm.U:clone()
+     newrbm.W = rbm.W:clone()
+     newrbm.U = rbm.U:clone()
 	newrbm.b = rbm.b:clone()
 	newrbm.c = rbm.c:clone()
 	newrbm.d = rbm.d:clone()
