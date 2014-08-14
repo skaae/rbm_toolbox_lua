@@ -8,13 +8,20 @@ mnist.path_dataset = 'mnist-th7'
 mnist.path_trainset = paths.concat(mnist.path_dataset, 'train.th7')
 mnist.path_testset = paths.concat(mnist.path_dataset, 'test.th7')
 
-function mnist.download()
-   if not paths.filep(mnist.path_trainset) or not paths.filep(mnist.path_testset) then
-      local remote = mnist.path_remote
-      local tar = paths.basename(remote)
-      os.execute('wget ' .. remote .. '; ' .. 'tar xvf ' .. tar .. '; rm ' .. tar)
+function mnist.unpack(mnistfolder)
+     print(mnistfolder)
+   local train = paths.filep(paths.concat(mnistfolder, 'train.th7'))
+   local test = paths.filep(paths.concat(mnistfolder, 'test.th7'))
+     
+   if not train or not test then 
+      print("unpacking data...")
+      os.execute('tar xvf data/mnist_lua.tar.gz -C ../')
+   else
+      print("data already unpacked...skip")
    end
+   
 end
+
 
 function mnist.loadFlatDataset(fileName, maxLoad)
 

@@ -16,8 +16,12 @@ torch.setnumthreads(4)
 rescale = 1   -- Recales dataset, for testing 
 
 -- Download mnist if not present
-mnist_folder = '../MNISTDATA'
-mnist.download( mnist_folder )
+--mnist_folder = '../MNISTDATA'
+--mnist.download( mnist_folder )
+
+mnist_folder = '../mnist-th7'
+mnist.unpack(mnist_folder)
+
 data_test = mnist.loadFlatDataset(paths.concat(mnist_folder,'test.th7') )
 data_train = mnist.loadFlatDataset(paths.concat(mnist_folder,'train.th7') )
 
@@ -44,8 +48,6 @@ tempfile = 'discriminative_temp.asc'
 tempfolder = '../rbmtemp'
 finalfile = 'discriminative_final.asc'
 os.execute('mkdir -p ' .. tempfolder)   -- Create save folder if it does not exists
-finalfile = 
-
 opts.tempfile = paths.concat(tempfolder,tempfile)  -- current best is saved to this folder
 opts.n_hidden     = 500
 opts.numepochs    = 200
@@ -62,7 +64,7 @@ saverbm(paths.concat(tempfolder,tempfile),rbm)
 acc_train = accuracy(rbm,x_train,y_train)
 acc_val = accuracy(rbm,x_val,y_val)
 acc_test = accuracy(rbm,x_test,y_test)
-print('Train accuracy      : ', acc_train)
-print('Validation accuracy : ', acc_val)
-print('Test accuracy       : ', acc_test)
+print('Train error      : ', 1-acc_train)
+print('Validation error : ', 1-acc_val)
+print('Test error       : ', 1-acc_test)
 
