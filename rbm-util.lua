@@ -234,6 +234,7 @@ function saverbm(filename,rbm)
      file = torch.DiskFile(filename, 'w')
      file:writeObject(rbm)
      file:close() -- make sure the data is written
+     print("RBM saved: ", filename)
 end
 
 function loadrbm(filename)
