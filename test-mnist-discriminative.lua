@@ -12,6 +12,11 @@ mnist_folder = '../mnist-th7'
 rescale = 1
 x_train, y_train, x_val, y_val, x_test, y_test = mnist.createdatasets(mnist_folder,rescale) 
    
+num_threads = 2 
+torch.setnumthreads(num_threads)
+if torch.getnumthreads() < num_threads then
+     print("Setting number of threads had no effect. Maybe install with gcc 4.9 for openMP?"
+end
 
 -- SETUP RBM
 local opts = {}
@@ -21,13 +26,13 @@ os.execute('mkdir -p ' .. tempfolder)              -- create tempfolder if it do
 local finalfile = 'discriminative_final.asc'             -- Name of final RBM file
 os.execute('mkdir -p ' .. tempfolder)              -- Create save folder if it does not exists
 opts.tempfile = paths.concat(tempfolder,tempfile)  -- current best is saved to this folder
-opts.traintype = 'PCD'
+opts.traintype = 'CD'
 opts.cdn = 1
 opts.n_hidden     = 500
 opts.numepochs    = 200
 opts.patience     = 15                             -- early stopping is always enabled, to disble set this to inf = 1/0   
 opts.learningrate = 0.05
-opts.alpha = 0.5
+opts.alpha = 0
 opts.beta = 0
 opts.isgpu = 0
 

@@ -22,21 +22,15 @@ end
 function regularization.applydropoutordropconnect(rbm)
            -- For Dropout and dropconnect keep copy of original weights.
       -- Dropout - maybe add some uption to use the same mask for several samples if cloning is slow?
-     if rbm.dropout > 0 or rbm.dropconnect > 0 then
-          local W_org,U_org, c_org
+     if rbm.dropconnect > 0 then
           rbm.W_org = rbm.W:clone();   
           rbm.U_org = rbm.U:clone(); 
           rbm.c_org = rbm.c:clone(); 
      end
 
-     -- dropout knocks out rows of weight matrices eq to knocking the corresponding hidden, i.e row 3 = hidden 3
-     -- set the weights to something large negatie number to foce the sigm to output 0
+     -- Create dropout mask
      if rbm.dropout > 0 then
-          local mask_dropout
-          rbm.mask_dropout = regularization.mask2sub( torch.lt( torch.rand(rbm.W:size(1)),rbm.dropout ):typeAs(rbm.W) )
-          for i = 1, rbm.mask_dropout:size(1) do rbm.W[{rbm.mask_dropout[i],{} }] =-1000000000 end
-          for i = 1, rbm.mask_dropout:size(1) do rbm.U[{rbm.mask_dropout[i],{} }] =-1000000000 end
-          for i = 1, rbm.mask_dropout:size(1) do rbm.c[{rbm.mask_dropout[i],{} }] =-1000000000 end
+          rbm.dropout_mask = torch.lt( torch.rand(1,rbm.n_hidden),rbm.dropout ):typeAs(rbm.W)
      end
 
      -- dropconnect randomly knocks out connections
