@@ -8,53 +8,52 @@ function grads.generative(rbm,x,y,tcwx,chx,chy)
      h0 = sigm( torch.add(tcwx, torch.mm(y,rbm.U:t() ) ) ) --   UP
      
      
+     -- Switch between CD and PCD
      if rbm.traintype == 0 then -- CD
+          -- Use training data as start for negative statistics
           h0_rnd = sampler(h0,rbm.rand)   -- use training data as start
      else
-          -- use pcd chains as start
+          -- use pcd chains as start for negative statistics
           ch_idx =  math.floor( (torch.rand(1) * rbm.npcdchains)[1]) +1
           h0_rnd = sampler( rbmup(rbm, chx[ch_idx]:resize(1,x:size(2)), chy[ch_idx]:resize(1,y:size(2))), rbm.rand)
      end
      
+     -- If CDn > 1 update chians n-1 times
+     for i = 1, (rbm.cdn - 1) do
+          visx_rnd = sampler( rbmdownx( rbm, h0_rnd ), rbm.rand)   
+          visy_rnd = samplevec( rbmdowny( rbm, h0_rnd), rbm.rand)
+          hid_rnd  = sampler( rbmup(rbm,visx_rnd, visy_rnd), rbm.rand)
+     end
      
+               
+     -- Down-Up dont sample hiddens, because it introduces noise
+     local vkx = rbmdownx(rbm,h0_rnd)                            
+     local vkx_rnd = sampler(vkx,rbm.rand)                      
+     local vky_rnd = samplevec( rbmdowny(rbm,h0_rnd), rbm.rand)                
+     local hk = rbmup(rbm,vkx_rnd,vky_rnd)   
      
-    
-    for i = 1, (rbm.cdn - 1) do
-       visx_rnd = sampler( rbmdownx( rbm, h0_rnd ), rbm.rand)   
-       visy_rnd = samplevec( rbmdowny( rbm, h0_rnd), rbm.rand)
-       hid_rnd  = sampler( rbmup(rbm,visx_rnd, visy_rnd), rbm.rand)
-    end
-     
-
-     
-     
-     
-     local vkx = rbmdownx(rbm,h0_rnd)                            -- DOWN    
-     local vkx_rnd = sampler(vkx,rbm.rand)                       --   |
-     local vky = rbmdowny(rbm,h0_rnd)                            --   |
-     local vky = samplevec(vky,rbm.rand);                        --   |
-     local hk = rbmup(rbm,vkx_rnd,vky)                           --   UP
+     -- If PCD: Update status of selected PCD chains
+     if rbm.traintype == 1 then
+          chx[{ ch_idx,{} }] = vkx_rnd
+          chy[{ ch_idx,{} }] = vky_rnd
+     end
 
      -- Calculate generative gradients
      local dW =   torch.mm(h0:t(),x) :add(-torch.mm(hk:t(),vkx_rnd)) 
-     local dU =   torch.mm(h0:t(),y):add(-torch.mm(hk:t(),vky)) 
+     local dU =   torch.mm(h0:t(),y):add(-torch.mm(hk:t(),vky_rnd)) 
      local db =   torch.add(x,  -vkx_rnd):t()  
      local dc =   torch.add(h0, -hk ):t() 
-     local dd =   torch.add(y,  -vky):t() 
+     local dd =   torch.add(y,  -vky_rnd):t() 
      return dW, dU, db, dc ,dd, vkx
 end
 
 -- Calculate discriminative weights
 -- tcwx is  tcwx = torch.mm( x,rbm.W:t() ):add( rbm.c:t() )
 function grads.discriminative(rbm,x,y,tcwx)
---  local F   = torch.add(rbm.U, tcwx:repeatTensor(rbm.U:size(2),1):t() );
---  local F_soft = softplus(F)
---  local p_y_given_x_log_prob = torch.add(F_soft:sum(1), rbm.d)
---  local p_y_given_x_not_norm = torch.add(p_y_given_x_log_prob, -torch.max(p_y_given_x_log_prob) ):exp()
---  local p_y_given_x = torch.mul(p_y_given_x_not_norm, (1/p_y_given_x_not_norm:sum()))
+  -- hidden are      act_hid =  sigm(x*W'+ c' + y*U)
+ 
   
-
-  local p_y_given_x, F = pygivenx(rbm,x,tcwx)
+  local p_y_given_x, F = grads.pygivenx(rbm,x,tcwx)
 
 
   local F_sigm = sigm(F)
@@ -73,6 +72,32 @@ function grads.discriminative(rbm,x,y,tcwx)
   
   return dW, dU, dc, dd,p_y_given_x
 
+end
+
+
+function grads.pygivenx(rbm,x,tcwx_pre_calc)
+     -- hidden are      act_hid =  sigm(x*W'+ c' + y*U)
+     -- F is  [hidden X classes]
+     local tcwx,F,pyx
+     tcwx_pre_calc = tcwx_pre_calc or torch.mm( x,rbm.W:t() ):add( rbm.c:t() )
+     F   = torch.add( rbm.U,   torch.mm(tcwx_pre_calc:t(), rbm.one_by_classes)    )
+     pyx = softplus(F):sum(1)                    -- p(y|x) logprob
+     pyx:add(-torch.max(pyx))   -- divide by max,  log domain
+     pyx:exp()   -- p(y|x) unnormalized prob     -- convert to real domain
+     pyx:mul( ( 1/pyx:sum() ))  -- normalize probabilities
+     
+     
+     -- OLD CODE
+     --local p_y_given_x_log_prob = softplus(F):sum(1)   --log  prob
+     --local p_y_given_x_not_norm = torch.add(p_y_given_x_log_prob, -torch.max(p_y_given_x_log_prob) ):exp()
+     --local p_y_given_x = torch.mul(p_y_given_x_not_norm, (1/p_y_given_x_not_norm:sum()))
+     
+              
+
+     
+     return pyx,F
+     
+      
 end
 
 
@@ -114,7 +139,7 @@ function grads.calculategrads(rbm,x_tr,y_tr,x_semi)
       
       -- SEMISUPERVISED GRADS
       if rbm.beta > 0 then
-               p_y_given_x = p_y_given_x or pygivenx(rbm,x_tr,tcwx)
+               grads.p_y_given_x = p_y_given_x or grads.pygivenx(rbm,x_tr,tcwx)
                y_semi = samplevec(p_y_given_x,rbm.rand):resize(1,rbm.n_classes)
                dW_semi, dU_semi,db_semi, dc_semi, dd_semi = grads.generative(rbm,x_semi,y_semi,tcwx,rbm.chx_semisup,rbm.chy_semisup)
                rbm.dW:add( dW_semi:mul( rbm.beta ))
