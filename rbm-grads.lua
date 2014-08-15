@@ -72,7 +72,6 @@ function grads.discriminative(rbm,x,y,tcwx)
      end
      
      F_sigm_prob  = torch.cmul( F_sigm, torch.mm( rbm.hidden_by_one,p_y_given_x ) )
-
      F_sigm_prob_sum = F_sigm_prob:sum(2)
      F_sigm_dy = torch.mm(F_sigm, y:t())
 
@@ -120,10 +119,9 @@ end
 
 
 function grads.calculategrads(rbm,x_tr,y_tr,x_semi)
-      local dW_gen, dU_gen, db_gen, dc_gen, dd_gen, vkx 
+      local dW_gen, dU_gen, db_gen, dc_gen, dd_gen, vkx, tcwx 
       local dW_dis, dU_dis, dc_dis, dd_dis, p_y_given_x
       local dW_semi, dU_semi,db_semi, dc_semi, dd_semi, y_semi
-      local tcwx = torch.mm( x_tr,rbm.W:t() ):add( rbm.c:t() )   -- precalc tcwx
       
       -- reset accumulators
       rbm.dW:fill(0)
@@ -131,7 +129,8 @@ function grads.calculategrads(rbm,x_tr,y_tr,x_semi)
       rbm.db:fill(0)
       rbm.dc:fill(0)
       rbm.dd:fill(0)
-
+      
+     tcwx = torch.mm( x_tr,rbm.W:t() ):add( rbm.c:t() )   -- precalc tcwx
       -- GENERATIVE GRADS
       if rbm.alpha > 0 then
         dW_gen, dU_gen, db_gen, dc_gen, dd_gen, vkx  = grads.generative(rbm,x_tr,y_tr,tcwx,rbm.chx,rbm.chy)

@@ -34,13 +34,13 @@ for epoch = 1, rbm.numepochs do
 
 
           x_tr,y_tr,x_semi = getsamples(rbm,x_train,y_train,x_semisup,i)
-          regularization.applydropoutordropconnect(rbm)        -- cp org weights, drops weights if enabled
+          regularization.applydropoutordropconnect(rbm,i)        -- cp org weights, drops weights if enabled
           grads.calculategrads(rbm,x_tr,y_tr,x_semi)                -- calculates dW, dU, db, dc and dd
           regularization.applyregularization(rbm)              -- regularizes dW, dU, db, dc and dd
           updategradsandmomentum(rbm) 
            
           -- update vW, vU, vb, vc and vd, formulae: vx = vX*mom + dX
-          restoreorgweights(rbm)                               -- restore weights from before dropping                        
+          restoreorgweights(rbm,i)                             -- restore weights from before dropping                        
           updateweights(rbm)                                   -- updates W,U,b,c and d, formulae: X =  X + vX
           
           
@@ -158,7 +158,7 @@ end
 
 
 
-function restoreorgweights(rbm)
+function restoreorgweights(rbm,i)
      if rbm.dropconnect > 0 then
           -- TODO: not sure if i need to clone here
           rbm.W = rbm.W_org:clone();    

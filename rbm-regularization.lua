@@ -19,23 +19,21 @@ function regularization.applyregularization(rbm)
 end
 
 
-function regularization.applydropoutordropconnect(rbm)
-           -- For Dropout and dropconnect keep copy of original weights.
-      -- Dropout - maybe add some uption to use the same mask for several samples if cloning is slow?
-     if rbm.dropconnect > 0 then
-          rbm.W_org = rbm.W:clone();   
-          rbm.U_org = rbm.U:clone(); 
-          rbm.c_org = rbm.c:clone(); 
-     end
-
-     -- Create dropout mask
+function regularization.applydropoutordropconnect(rbm,i)
      if rbm.dropout > 0 then
           rbm.dropout_mask = torch.lt( torch.rand(1,rbm.n_hidden),rbm.dropout ):typeAs(rbm.W)
      end
 
-     -- dropconnect randomly knocks out connections
+     -- dropconnect randomly knocks out connections, + backup org weights
      if rbm.dropconnect > 0 then
           local mask_dropout_W, mask_dropout_U, mask_dropout_c 
+          
+          -- backup org weights
+          rbm.W_org = rbm.W:clone();   
+          rbm.U_org = rbm.U:clone(); 
+          rbm.c_org = rbm.c:clone(); 
+          
+          -- create mask and apply them on weights, original weights are restored after updates, see restorweights in rbm.lua
           rbm.mask_dropconnect_W = torch.gt( torch.rand( rbm.W:size() ), rbm.dropconnect ):typeAs(rbm.W)
           rbm.mask_dropconnect_U = torch.gt( torch.rand( rbm.U:size() ), rbm.dropconnect ):typeAs(rbm.U)
           rbm.mask_dropconnect_c = torch.gt( torch.rand( rbm.c:size() ), rbm.dropconnect ):typeAs(rbm.c)
