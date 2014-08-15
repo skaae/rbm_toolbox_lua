@@ -242,6 +242,15 @@ assert(checkequality(rbm.c, torch.add(c ,torch.mul(dc_true,rbm.learningrate)) ,-
 assert(checkequality(rbm.d, torch.add(d ,torch.mul(dd_true,rbm.learningrate)) ,-3),'Check rbm.d failed')
 print "TEST of rbmtrain                                             : PASSED"
 
+--rbm.alpha = 0
+--rbm.beta = 0
+--rbm.learningrate = 0.1
+--rbm.dropout = 0.5
+--rbm.dropconnect = 0
+--rbm = rbmtrain(rbm,x,y)
+
+
+
 --rbm.dropout = 0.1
 --rbm.numepochs = 2
 --rbm.learningrate =0.5
