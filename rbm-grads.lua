@@ -50,54 +50,68 @@ end
 -- Calculate discriminative weights
 -- tcwx is  tcwx = torch.mm( x,rbm.W:t() ):add( rbm.c:t() )
 function grads.discriminative(rbm,x,y,tcwx)
-  -- hidden are      act_hid =  sigm(x*W'+ c' + y*U)
- 
-  
-  local p_y_given_x, F = grads.pygivenx(rbm,x,tcwx)
+     local p_y_given_x, F, mask_expanded,F_sigm, F_sigm_prob,F_sigm_prob_sum,F_sigm_dy
+     local dW,dU,dc,dd
+     
+     -- Switch between dropout version and non dropout version of pygivenx
+     if rbm.dropout > 0 then
+          p_y_given_x, F,mask_expanded = grads.pygivenxdropout(rbm,x,tcwx)
+     else  
+          p_y_given_x, F = grads.pygivenx(rbm,x,tcwx)
+     end   
+
+     F_sigm = sigm(F)
+     
+     -- Apply dropout mask
+     if rbm.dropout > 0 then
+          F_sigm:cmul(mask_expanded)
+     end
+     
+     F_sigm_prob  = torch.cmul( F_sigm, torch.mm( rbm.hidden_by_one,p_y_given_x ) )
+
+     F_sigm_prob_sum = F_sigm_prob:sum(2)
+     F_sigm_dy = torch.mm(F_sigm, y:t())
 
 
-  local F_sigm = sigm(F)
-  --local F_sigm_prob  = torch.cmul( F_sigm, p_y_given_x:repeatTensor(rbm.U:size(1),1) )
-  local F_sigm_prob  = torch.cmul( F_sigm, torch.mm( rbm.hidden_by_one,p_y_given_x ) )
-  
-  local F_sigm_prob_sum = F_sigm_prob:sum(2)
-  local F_sigm_dy = torch.mm(F_sigm, y:t())
+     dW =  torch.add( torch.mm(F_sigm_dy, x), -torch.mm(F_sigm_prob_sum,x) )
+     dU =  torch.add( -F_sigm_prob, torch.cmul(F_sigm, torch.mm( torch.ones(F_sigm_prob:size(1),1),y ) ) )
+     dc = torch.add(-F_sigm_prob_sum, F_sigm_dy)
+     dd = torch.add(y, -p_y_given_x):t()
 
-  
-  local dW =  torch.add( torch.mm(F_sigm_dy, x), -torch.mm(F_sigm_prob_sum,x) )
-  local dU =  torch.add( -F_sigm_prob, torch.cmul(F_sigm, torch.mm( torch.ones(F_sigm_prob:size(1),1),y ) ) )
-  local dc = torch.add(-F_sigm_prob_sum, F_sigm_dy)
-  local dd = torch.add(y, -p_y_given_x):t()
 
-  
-  return dW, dU, dc, dd,p_y_given_x
+     return dW, dU, dc, dd,p_y_given_x
 
 end
 
 
 function grads.pygivenx(rbm,x,tcwx_pre_calc)
-     -- hidden are      act_hid =  sigm(x*W'+ c' + y*U)
-     -- F is  [hidden X classes]
      local tcwx,F,pyx
      tcwx_pre_calc = tcwx_pre_calc or torch.mm( x,rbm.W:t() ):add( rbm.c:t() )
-     F   = torch.add( rbm.U,   torch.mm(tcwx_pre_calc:t(), rbm.one_by_classes)    )
-     pyx = softplus(F):sum(1)                    -- p(y|x) logprob
-     pyx:add(-torch.max(pyx))   -- divide by max,  log domain
-     pyx:exp()   -- p(y|x) unnormalized prob     -- convert to real domain
-     pyx:mul( ( 1/pyx:sum() ))  -- normalize probabilities
-     
-     
-     -- OLD CODE
-     --local p_y_given_x_log_prob = softplus(F):sum(1)   --log  prob
-     --local p_y_given_x_not_norm = torch.add(p_y_given_x_log_prob, -torch.max(p_y_given_x_log_prob) ):exp()
-     --local p_y_given_x = torch.mul(p_y_given_x_not_norm, (1/p_y_given_x_not_norm:sum()))
-     
-              
-
-     
+     F = torch.add( rbm.U, torch.mm(tcwx_pre_calc:t(), rbm.one_by_classes) )
+     pyx = softplus(F):sum(1)        -- p(y|x) logprob
+     pyx:add(-torch.max(pyx))       -- divide by max,  log domain
+     pyx:exp()                      -- convert to real domain
+     pyx:mul( ( 1/pyx:sum() ))      -- normalize probabilities
      return pyx,F
+end
+
+function grads.pygivenxdropout(rbm,x,tcwx_pre_calc)
+     -- Dropout version of pygivenx
+     local tcwx,F,pyx, mask_expanded
+     mask_expanded = torch.mm(rbm.dropout_mask:t(), rbm.one_by_classes)
+     tcwx_pre_calc = tcwx_pre_calc or torch.mm( x,rbm.W:t() ):add( rbm.c:t() )
+  
+     F   = torch.add( rbm.U, torch.mm(tcwx_pre_calc:t(), rbm.one_by_classes) )
+     F:cmul(mask_expanded)          -- Apply dropout mask
      
-      
+     F_softplus = softplus(F)
+     F_softplus:cmul(mask_expanded) -- Apply dropout mask
+     
+     pyx = F_softplus:sum(1)        -- p(y|x) logprob
+     pyx:add(-torch.max(pyx))       -- divide by max,  log domain
+     pyx:exp()                      -- convert to real domain
+     pyx:mul( ( 1/pyx:sum() ))      -- normalize probabilities
+     return pyx,F,mask_expanded
 end
 
 
