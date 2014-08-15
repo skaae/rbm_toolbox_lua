@@ -9,7 +9,6 @@ function grads.generative(rbm,x,y,tcwx,chx,chy)
      
      if rbm.dropout >  0 then
           drop = 1
-          h0:cmul(rbm.dropout_mask)   -- Apply dropout on p(h|v)
      end
      
      -- Switch between CD and PCD
@@ -20,6 +19,10 @@ function grads.generative(rbm,x,y,tcwx,chx,chy)
           -- use pcd chains as start for negative statistics
           ch_idx = math.floor( (torch.rand(1) * rbm.npcdchains)[1]) +1
           h0_rnd = sampler( rbmup(rbm, chx[ch_idx]:resize(1,x:size(2)), chy[ch_idx]:resize(1,y:size(2)), drop), rbm.rand)
+     end
+     
+     if rbm.dropout >  0 then
+          h0_rnd:cmul(rbm.dropout_mask)   -- Apply dropout on p(h|v)
      end
      
      -- If CDn > 1 update chians n-1 times
