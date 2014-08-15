@@ -71,12 +71,20 @@ function softplus(x)
      return(o)
 end
 
-function rbmup(rbm,x,y) 
+function rbmup(rbm,x,y,drop) 
+     -- drop == 1 applies dropout to p(h|v)
      local act_hid
      act_hid = torch.mm(x,rbm.W:t()):add(rbm.c:t())  -- x * rbm.W' + rbm.c'
      act_hid:add( torch.mm(y,rbm.U:t()) )
      act_hid = sigm(act_hid) 
+     
+     if drop == 1 then  
+          act_hid:cmul(rbm.dropout_mask)
+     end
+          
+          
      return act_hid
+     
 end
 
 function rbmdownx(rbm,act_hid)
