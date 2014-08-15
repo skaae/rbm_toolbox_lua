@@ -15,7 +15,7 @@ x_train, y_train, x_val, y_val, x_test, y_test = mnist.createdatasets(mnist_fold
 num_threads = 2 
 torch.setnumthreads(num_threads)
 if torch.getnumthreads() < num_threads then
-     print("Setting number of threads had no effect. Maybe install with gcc 4.9 for openMP?"
+     print("Setting number of threads had no effect. Maybe install with gcc 4.9 for openMP?")
 end
 
 -- SETUP RBM
