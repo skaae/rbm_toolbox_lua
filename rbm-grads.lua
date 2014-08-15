@@ -4,9 +4,13 @@ ProFi = require('ProFi')
 -- Calculate generative weights
 -- tcwx is  tcwx = torch.mm( x,rbm.W:t() ):add( rbm.c:t() )
 function grads.generative(rbm,x,y,tcwx,chx,chy)
-     local visx_rnd, visy_rnd, h0, h0_rnd,ch_idx
+     local visx_rnd, visy_rnd, h0, h0_rnd,ch_idx,drop
      h0 = sigm( torch.add(tcwx, torch.mm(y,rbm.U:t() ) ) ) --   UP
      
+     if rbm.dropout >  0 then
+          drop = 1
+          h0:cmul(rbm.dropout_mask)   -- Apply dropout on p(h|v)
+     end
      
      -- Switch between CD and PCD
      if rbm.traintype == 0 then -- CD
@@ -14,15 +18,15 @@ function grads.generative(rbm,x,y,tcwx,chx,chy)
           h0_rnd = sampler(h0,rbm.rand)   -- use training data as start
      else
           -- use pcd chains as start for negative statistics
-          ch_idx =  math.floor( (torch.rand(1) * rbm.npcdchains)[1]) +1
-          h0_rnd = sampler( rbmup(rbm, chx[ch_idx]:resize(1,x:size(2)), chy[ch_idx]:resize(1,y:size(2))), rbm.rand)
+          ch_idx = math.floor( (torch.rand(1) * rbm.npcdchains)[1]) +1
+          h0_rnd = sampler( rbmup(rbm, chx[ch_idx]:resize(1,x:size(2)), chy[ch_idx]:resize(1,y:size(2)), drop), rbm.rand)
      end
      
      -- If CDn > 1 update chians n-1 times
      for i = 1, (rbm.cdn - 1) do
           visx_rnd = sampler( rbmdownx( rbm, h0_rnd ), rbm.rand)   
           visy_rnd = samplevec( rbmdowny( rbm, h0_rnd), rbm.rand)
-          hid_rnd  = sampler( rbmup(rbm,visx_rnd, visy_rnd), rbm.rand)
+          hid_rnd  = sampler( rbmup(rbm,visx_rnd, visy_rnd, drop), rbm.rand)
      end
      
                
@@ -30,7 +34,7 @@ function grads.generative(rbm,x,y,tcwx,chx,chy)
      local vkx = rbmdownx(rbm,h0_rnd)                            
      local vkx_rnd = sampler(vkx,rbm.rand)                      
      local vky_rnd = samplevec( rbmdowny(rbm,h0_rnd), rbm.rand)                
-     local hk = rbmup(rbm,vkx_rnd,vky_rnd)   
+     local hk = rbmup(rbm,vkx_rnd,vky_rnd,drop)   
      
      -- If PCD: Update status of selected PCD chains
      if rbm.traintype == 1 then
