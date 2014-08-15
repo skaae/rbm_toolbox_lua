@@ -98,7 +98,8 @@ no units to zero. `opts.dropout = 0` will disable dropout (It does not make sens
 
 ### DropConnect
 Drop connect clamps Weights and Biases of the hidden layer to zero with probability `1-opts.dropconnect`.
-DropConnect is applied by randomly clamping weights of *W*, *U* and *c* to zero. 
+DropConnect is applied by randomly clamping weights of *W*, *U* and *c* to zero. DropConnect is slower than 
+dropout because we need to clone the weight matrices before each weight update. 
 
 # Examples
 
@@ -175,7 +176,7 @@ The figure below shows the training and validation error during trainig:
 
 Finally the learned filters can be vizualized:
 
-<img src="/uploads/rbmW_ex1.png" height="550" width="550"> 
+<img src="/uploads/rbmW_ex1.png" height="700" width="700"> 
 
 The graphs are created in MATLAB. I created a simple script to pass RBM's from Torch to MATLAB
 
@@ -202,8 +203,9 @@ prettyfig(gca,title('Discriminative training'),...
 grid on
 
 figure;
-visualize(rbm.W(1:100
-axis off
+[~,idx] = sort( sum(rbm.W.^2,2), 1, 'descend');  % sort by norm
+idx = idx(1:100);
+visualize(rbm.W(idx,:)')
 ```
 
 # References
