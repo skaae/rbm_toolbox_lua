@@ -4,7 +4,7 @@ ProFi = require('ProFi')
 -- Calculate generative weights
 -- tcwx is  tcwx = torch.mm( x,rbm.W:t() ):add( rbm.c:t() )
 function grads.generative(rbm,x,y,tcwx,chx,chy)
-     local visx_rnd, visy_rnd, h0, h0_rnd,ch_idx,drop
+     local visx_rnd, visy_rnd, h0, h0_rnd,ch_idx,drop, vkx, vkx_rnd, vky_rnd,hk
      h0 = sigm( torch.add(tcwx, torch.mm(y,rbm.U:t() ) ) ) --   UP
      
      if rbm.dropout >  0 then
@@ -31,10 +31,10 @@ function grads.generative(rbm,x,y,tcwx,chx,chy)
      
                
      -- Down-Up dont sample hiddens, because it introduces noise
-     local vkx = rbmdownx(rbm,h0_rnd)                            
-     local vkx_rnd = sampler(vkx,rbm.rand)                      
-     local vky_rnd = samplevec( rbmdowny(rbm,h0_rnd), rbm.rand)                
-     local hk = rbmup(rbm,vkx_rnd,vky_rnd,drop)   
+     vkx = rbmdownx(rbm,h0_rnd)                            
+     vkx_rnd = sampler(vkx,rbm.rand)                      
+     vky_rnd = samplevec( rbmdowny(rbm,h0_rnd), rbm.rand)                
+     hk = rbmup(rbm,vkx_rnd,vky_rnd,drop)   
      
      -- If PCD: Update status of selected PCD chains
      if rbm.traintype == 1 then
