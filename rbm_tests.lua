@@ -3,6 +3,7 @@ require('torch')
 -- load rbm functions
 require('rbm')
 require('dataset-mnist')
+require('rbm-grads')
 
 torch.manualSeed(101)
 torch.setdefaulttensortype('torch.FloatTensor')
@@ -90,6 +91,7 @@ rbm.hidden_by_one  = torch.ones(rbm.W:size(1),1)
 rbm.traintype = 0 -- CD
 rbm.npcdchains = 1
 rbm.cdn = 1
+rbm.n_hidden  = n_hidden
 
 ---------------------------------------------------------
 -- TRUE VALUES rbm-util
@@ -167,7 +169,7 @@ local _vkx = rbmdownx(rbm,_h0_rnd)   -- DOWNX
 local _vkx_rnd = sampler(_vkx,rbm.rand)
 local _vky = rbmdowny(rbm,_h0_rnd)
 local _vky_rnd = samplevec(_vky,rbm.rand)
-local _p_y_given_x = pygivenx(rbm,x)
+local _p_y_given_x = grads.pygivenx(rbm,x)
 rbm.learningrate = 0 -- to avoid updating weights
 --rbm = rbmtrain(rbm,x,y)
 
@@ -186,7 +188,7 @@ local vkx = rbmdownx(rbm,h0_rnd)   -- DOWNX
 local vkx_rnd = sampler(vkx,rbm.rand)
 local vky = rbmdowny(rbm,h0_rnd)
 local vky_rnd = samplevec(vky,rbm.rand)
-local p_y_given_x =pygivenx(rbm,x)
+local p_y_given_x =grads.pygivenx(rbm,x)
 
 
 ---------------------------------------------------------

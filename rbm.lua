@@ -159,7 +159,7 @@ end
 
 
 function restoreorgweights(rbm)
-     if rbm.dropout > 0 or rbm.dropconnect > 0 then
+     if rbm.dropconnect > 0 then
           -- TODO: not sure if i need to clone here
           rbm.W = rbm.W_org:clone();    
           rbm.U = rbm.U_org:clone(); 

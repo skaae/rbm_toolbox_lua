@@ -1,6 +1,7 @@
 require('nn')
 require('pl')
 require('torch')
+require('rbm-grads')
 
 
 --- Sigmoid function
@@ -62,30 +63,6 @@ end
 --- Calculate p(y|x)
 -- @rbm table 
 -- @see rbmsetup
-function pygivenx(rbm,x,tcwx_pre_calc)
-     
-     local tcwx,F,pyx
-     tcwx_pre_calc = tcwx_pre_calc or torch.mm( x,rbm.W:t() ):add( rbm.c:t() )
-     --F   = torch.add(rbm.U, tcwx_pre_calc:repeatTensor(rbm.U:size(2),1):t() );
-     F   = torch.add( rbm.U,   torch.mm(tcwx_pre_calc:t(), rbm.one_by_classes)    )
-     pyx = softplus(F):sum(1)                    -- p(y|x) logprob
-     pyx:add(-torch.max(pyx))   -- divide by max,  log domain
-     pyx:exp()   -- p(y|x) unnormalized prob     -- convert to real domain
-     pyx:mul( ( 1/pyx:sum() ))  -- normalize probabilities
-     
-     
-     -- OLD CODE
-     --local p_y_given_x_log_prob = softplus(F):sum(1)   --log  prob
-     --local p_y_given_x_not_norm = torch.add(p_y_given_x_log_prob, -torch.max(p_y_given_x_log_prob) ):exp()
-     --local p_y_given_x = torch.mul(p_y_given_x_not_norm, (1/p_y_given_x_not_norm:sum()))
-     
-              
-
-     
-     return pyx,F
-     
-      
-end
 
 
 function softplus(x)  
@@ -143,7 +120,7 @@ function classprobs(rbm,x)
      probs = torch.Tensor(x:size(1),rbm.n_classes)
      for i = 1, x:size(1) do
           x_i =x[i]:resize(1,n_visible)
-          p_i = pygivenx(rbm,x_i)
+          p_i = grads.pygivenx(rbm,x_i)
           probs[{i,{}}] = p_i
      end
      return(probs)
@@ -186,6 +163,7 @@ function rbmsetup(opts,x,y,x_semisup)
 	local n_samples = x:size(1)
 	local n_visible = x:size(2)
 	local n_classes = y:size(2)
+     
 
 	local rbm = {}
 
@@ -212,6 +190,7 @@ function rbmsetup(opts,x,y,x_semisup)
 	rbm.n_classes       = y:size(2) 
 	rbm.n_visible       = x:size(2)
 	rbm.n_samples       = x:size(1)
+     rbm.n_hidden        = opts.n_hidden
      
      -- prealocate som matrices
      rbm.one_by_classes  = torch.ones(1,rbm.U:size(2))
