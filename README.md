@@ -91,6 +91,15 @@ The training behavior is controlled with `opts.alpha`
  * Early-stopping: Always enabled. Set the patience with opts.patience. To disable
  early stopping set patience to infinity.
 
+### DropOut
+Dropout is implemented by clamping random hidden units to zero during training. The probability of each hidden units 
+being clamped is `1-opts.dropout`, i.e `opts.dropout = 0` will clamp all hidden units to zero and `opts.dropout =1` will clamp 
+no units to zero. `opts.dropout = 0` will disable dropout (It does not make sense to clamp all units anyway).
+
+### DropConnect
+Drop connect clamps Weights and Biases of the hidden layer to zero with probability `1-opts.dropconnect`.
+DropConnect is applied by randomly clamping weights of *W*, *U* and *c* to zero. 
+
 # Examples
 
 Reproducing results from [7], specifically the results from the table reproduced below:
