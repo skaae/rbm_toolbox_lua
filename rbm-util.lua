@@ -71,18 +71,12 @@ function softplus(x)
      return(o)
 end
 
-function rbmup(rbm,x,y,randomGenerator) 
+function rbmup(rbm,x,y) 
      local act_hid
      act_hid = torch.mm(x,rbm.W:t()):add(rbm.c:t())  -- x * rbm.W' + rbm.c'
      act_hid:add( torch.mm(y,rbm.U:t()) )
      act_hid = sigm(act_hid) 
-     
-     if randomGenerator then
-          local act_hid_rnd = sampler(act_hid, randomGenerator)
-          return act_hid, act_hid_rnd
-     else
-          return act_hid
-     end
+     return act_hid
 end
 
 function rbmdownx(rbm,act_hid)
