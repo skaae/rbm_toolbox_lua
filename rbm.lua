@@ -19,17 +19,26 @@ function rbmtrain(rbm,x_train,y_train,x_val,y_val,x_semisup)
 --print(x_semisup)
 printRBM(rbm,x_train,x_val,x_semisup)
 
-rbm.time = {}
+--x = torch.rand(10,5)
+--x_mean = torch.mm(torch.ones(x:size(1),1),x:mean(1))
+--x = torch.add(x,-x_mean)
 
 local x_tr,y_tr,x_semi, total_time, epoch_time,acc_train
 local best_val_err = 1/0
 local patience = rbm.patience
 total_time  = socket.gettime()
 
-for epoch = 1, rbm.numepochs do 
+-- extend error tensors if resuming training
+if rbm.rbm.err_train:size(1) <= rbm.numepochs then
+     rbm.err_recon_train = extendTensor(rbm.err_trecon_train,rbm.numepochs)
+     rbm.err_train = extendTensor(rbm.err_train,rbm.numepochs)
+     rbm.err_val = extendTensor(rbm.err_val,rbm.numepochs)
+end
+
+for epoch = rbm.currentepoch, rbm.numepochs do 
      epoch_time = socket.gettime()
      rbm.cur_err = torch.zeros(1)
-
+     rbm.currentepoch = epoch
      for i = 1, x_train:size(1) do  -- iter over samples
 
 
@@ -177,5 +186,11 @@ function cprbm(rbm)
      return(newrbm)
 end
 
-
-
+-- extend old tensor to 
+function extendTensor(oldtensor,newsize,fill)
+     if fill then fill = fill else fill = -1 end
+     local newtensor
+     newtensor = torch.Tensor(newsize):fill(fill)
+     newtensor[{{1,oldtensor:size(1)}}] = oldtensor:clone()
+     return newtensor
+end

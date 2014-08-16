@@ -196,11 +196,12 @@ function rbmsetup(opts,x,y,x_semisup)
      
      -- prealocate som matrices
      rbm.one_by_classes  = torch.ones(1,rbm.U:size(2))
-     rbm.hidden_by_one  = torch.ones(rbm.W:size(1),1)
+     rbm.hidden_by_one   = torch.ones(rbm.W:size(1),1)
 
 
      -- Max epochs, lr and Momentum
 	rbm.numepochs       = opts.numepochs or 5
+     rbm.currentepoch    = 1
 	rbm.learningrate    = opts.learningrate or 0.05
      rbm.momentum        = opts.momentum or 0
      rbm.traintype       = opts.traintype or 'CD'   -- CD or PCD
