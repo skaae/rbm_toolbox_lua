@@ -189,6 +189,28 @@ Finally the learned filters can be vizualized:
 
 <img src="/uploads/rbmW_ex1.png" height="550" width="550"> 
 
+The results can be improved significantly by enabling dropout:
+
+```LUA
+opts.dropout = 0.5
+```
+The effective number of units, opts.dropout * #hidden, vas kept at 500, i.e the number of hidden units was increased 
+to 1000. All other settings where kept at their previous values.
+
+Using dropout the results are:
+Train error      : 	2.000000000002e-05	
+Validation error : 	0.0135	
+Test error       : 	0.0141
+
+These results are significantly better than non-dropout and similar to the performance of an SVM.
+
+Training error, valdiation error and weights for the dropout discriminativ model are shown below:
+
+<img src="/uploads/discrminative_dropout_ex1.png" height="400" width="400">   
+
+<img src="/uploads/discriminative_dropout_ex1.png" height="550" width="550">    
+
+
 The graphs are created in MATLAB. I created a simple script to pass RBM's from Torch to MATLAB
 
 In Torch do:
@@ -217,6 +239,7 @@ figure;
 [~,idx] = sort( sum(rbm.W.^2,2), 1, 'descend');  % sort by norm
 idx = idx(1:100);
 visualize(rbm.W(idx,:)')
+axis off;
 ```
 
 # References
