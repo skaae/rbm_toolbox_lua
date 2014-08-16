@@ -31,9 +31,20 @@ A RBM with standard settings can be trained and with:
 opts = {}
 rbm = rbmsetup(opts,x_train, y_train)
 rbm = rbmtrain(rbm,x_train,y_train,x_val,y_val)
+saverbm('rbm.asc',rbm)
 ```
 
-Passing in an empty opts table will use the default value. The following code shows valid opts fields 
+You may resume training of an already trained RBM. E.g if you trained a RBM for 10 epochs but want to train it for 
+10 more epochs, then:
+
+```LUA
+rbm = loadrbm('rbm.asc')
+rbm.numepochs = 20
+rbm = rbmtrain(rbm,x_train,y_train,x_val,y_val) -- resumes training from current epoch
+```
+
+Settings are controlled with the opts table. 
+Passing in an empty opts table to rbmsetup will use the default value. The following code shows valid opts fields 
 and their default value:
 
 ```LUA
