@@ -44,7 +44,7 @@ rbm = rbmtrain(rbm,x_train,y_train,x_val,y_val)
 --ProFi:stop()
 --ProFi:writeReport( 'dropconnect_nocopy.txt' )
           
-saverbm(paths.concat(tempfolder,tempfile),rbm)
+saverbm(paths.concat(tempfolder,finalfile),rbm)
 local acc_train = accuracy(rbm,x_train,y_train)
 local acc_val = accuracy(rbm,x_val,y_val)
 local acc_test = accuracy(rbm,x_test,y_test)
