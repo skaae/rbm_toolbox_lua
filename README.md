@@ -183,11 +183,11 @@ Which is comparable to the results reported in [7].
 
 The figure below shows the training and validation error during trainig:
 
-<img src="/uploads/discriminative_ex1.png" height="400" width="400"> 
+<img src="/uploads/ex1_trainval.png" height="400" width="400"> 
 
 Finally the learned filters can be vizualized:
 
-<img src="/uploads/rbmW_ex1.png" height="550" width="550"> 
+<img src="/uploads/ex1_weights.png" height="550" width="550"> 
 
 The results can be improved significantly by enabling dropout:
 

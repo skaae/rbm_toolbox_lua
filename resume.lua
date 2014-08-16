@@ -19,15 +19,16 @@ local finalfile = 'discriminative_dropout_final.asc'             -- Name of fina
    
 
 -- DO TRAINING
-local rbm = loadrbm('../rbmtemp/discriminative_dropout_temp.asc')
+local rbm = loadrbm('../discriminativeRBM/discriminative_dropout_temp.asc')
 rbm.tempfile = paths.concat(tempfolder,tempfile)
 rbm.numepochs = 200
 --rbm = rbmtrain(rbm,x_train,y_train,x_val,y_val)
---saverbm(paths.concat(tempfolder,finalfile), rbm)
-local acc_train = accuracy(rbm,x_train,y_train)
-local acc_val = accuracy(rbm,x_val,y_val)
-local acc_test = accuracy(rbm,x_test,y_test)
-print('Train error      : ', 1-acc_train)
-print('Validation error : ', 1-acc_val)
-print('Test error       : ', 1-acc_test)
+print(paths.concat(tempfolder,finalfile))
+writerbmtocsv(rbm,folder)('../rbmtemp/', rbm)
+--local acc_train = accuracy(rbm,x_train,y_train)
+--local acc_val = accuracy(rbm,x_val,y_val)
+--local acc_test = accuracy(rbm,x_test,y_test)
+--print('Train error      : ', 1-acc_train)
+--print('Validation error : ', 1-acc_val)
+--print('Test error       : ', 1-acc_test)
 
