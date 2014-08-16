@@ -9,104 +9,101 @@ require ('socket')  -- for timing
 
 
 function rbmtrain(rbm,x_train,y_train,x_val,y_val,x_semisup)
--- train RBM
--- Reset gradient accums
--- Print rbm
---print(x_train)
---print(y_train)
---print(x_val)
---print(y_val)
---print(x_semisup)
-printRBM(rbm,x_train,x_val,x_semisup)
+     -- train RBM
+     local x_tr,y_tr,x_semi, total_time, epoch_time,acc_train, best_val_err,patience, best_rbm,best
+     printrbm(rbm,x_train,x_val,x_semisup)
 
---x = torch.rand(10,5)
---x_mean = torch.mm(torch.ones(x:size(1),1),x:mean(1))
---x = torch.add(x,-x_mean)
+     patience = rbm.patience
+     total_time  = socket.gettime()
 
-local x_tr,y_tr,x_semi, total_time, epoch_time,acc_train
-local best_val_err = 1/0
-local patience = rbm.patience
-total_time  = socket.gettime()
+     -- extend error tensors if resuming training
+     if rbm.err_train:size(1) <= rbm.numepochs then
+          best_val_err = rbm.err_val[rbm.currentepoch]
+          rbm.err_recon_train = extendTensor(rbm, rbm.err_recon_train,rbm.numepochs)
+          rbm.err_train = extendTensor(rbm,rbm.err_train,rbm.numepochs)
+          rbm.err_val = extendTensor(rbm,rbm.err_val,rbm.numepochs) 
+          best_rbm = cprbm(rbm)  
+     end
 
--- extend error tensors if resuming training
-if rbm.err_train:size(1) <= rbm.numepochs then
-     rbm.err_recon_train = extendTensor(rbm, rbm.err_recon_train,rbm.numepochs)
-     rbm.err_train = extendTensor(rbm,rbm.err_train,rbm.numepochs)
-     rbm.err_val = extendTensor(rbm,rbm.err_val,rbm.numepochs)
+     best_val_err = best_val_err or 1/0
+     for epoch = rbm.currentepoch, rbm.numepochs do 
+          epoch_time = socket.gettime()
+          rbm.cur_err = torch.zeros(1)
+          rbm.currentepoch = epoch
+          
+          for i = 1, x_train:size(1) do  -- iter over samples
+               x_tr,y_tr,x_semi = getsamples(rbm,x_train,y_train,x_semisup,i)
+               regularization.applydropoutordropconnect(rbm,i)      -- cp org weights, drops weights if enabled
+               grads.calculategrads(rbm,x_tr,y_tr,x_semi)           -- calculates dW, dU, db, dc and dd
+               regularization.applyregularization(rbm)              -- regularizes dW, dU, db, dc and dd
+               updategradsandmomentum(rbm) 
+                
+               -- update vW, vU, vb, vc and vd, formulae: vx = vX*mom + dX
+               restoreorgweights(rbm,i)                             -- restore weights from before dropping                        
+               updateweights(rbm)                                   -- updates W,U,b,c and d, formulae: X =  X + vX
+               
+               if (i %  5000) == 0 then                              -- indicate progress
+                    io.write(".") 
+                    io.flush()
+               end
+               
+               -- Force garbagecollector to collect
+               if (i % 100) == 0 then
+                    collectgarbage()
+               end
+
+          end  -- end samples loop          
+          epoch_time = socket.gettime() - epoch_time 
+
+          -- calc. train recon err and train pred error
+          rbm.err_recon_train[epoch]    = rbm.cur_err:div(rbm.n_samples)
+          rbm.err_train[epoch]          = 1-accuracy(rbm,x_train,y_train)
+          
+          if x_val and y_val then
+               -- Eearly Stopping
+               rbm.err_val[epoch] = 1-accuracy(rbm,x_val,y_val)
+               if rbm.err_val[epoch] < best_val_err then
+                    best_val_err = rbm.err_val[epoch]
+                    patience = rbm.patience
+                    saverbm(rbm.tempfile,rbm) -- save current best
+                    best_rbm = cprbm(rbm)     -- save best weights
+                    best = '***'
+               else
+                    patience = patience - 1 
+                    best = ''
+               end
+          end         
+          diplayprogress(rbm,epoch,epoch_time,patience,best)
+          
+          if patience < 0 then  -- Stop training
+               -- Cp weights from best_rbm
+               rbm.W = best_rbm.W:clone()
+               rbm.U = best_rbm.U:clone()
+               rbm.b = best_rbm.b:clone()
+               rbm.c = best_rbm.c:clone()
+               rbm.d = best_rbm.d:clone()
+               break
+          end
+          
+     end  -- end epoch loop
+     total_time = socket.gettime() - total_time 
+     print("Mean epoch time:", total_time / rbm.numepochs)
+     return(rbm)
 end
 
-for epoch = rbm.currentepoch, rbm.numepochs do 
-     epoch_time = socket.gettime()
-     rbm.cur_err = torch.zeros(1)
-     rbm.currentepoch = epoch
-     for i = 1, x_train:size(1) do  -- iter over samples
-
-
-          x_tr,y_tr,x_semi = getsamples(rbm,x_train,y_train,x_semisup,i)
-          regularization.applydropoutordropconnect(rbm,i)        -- cp org weights, drops weights if enabled
-          grads.calculategrads(rbm,x_tr,y_tr,x_semi)                -- calculates dW, dU, db, dc and dd
-          regularization.applyregularization(rbm)              -- regularizes dW, dU, db, dc and dd
-          updategradsandmomentum(rbm) 
-           
-          -- update vW, vU, vb, vc and vd, formulae: vx = vX*mom + dX
-          restoreorgweights(rbm,i)                             -- restore weights from before dropping                        
-          updateweights(rbm)                                   -- updates W,U,b,c and d, formulae: X =  X + vX
-          
-          
-          if (i %  5000) == 0 then
-               io.write(".") 
-               io.flush()
-          end
-          
-          -- Force garbagecollector to collect. Reduces memory with atleast factor of 3.
-          if (i % 100) == 0 then
-               collectgarbage()
-          end
-
-          end  -- samples loop
-     epoch_time = socket.gettime() - epoch_time 
-     rbm.err_recon_train[epoch]    = rbm.cur_err:div(rbm.n_samples)
+function displayprogress(rbm,epoch,epoch_time,patience,best)
+     local strepoch, lrmom, err_recon, err_train, err_val, epoch_time_patience
      
+     strepoch   = string.format("%i/%i | ",epoch,rbm.numepochs)
+     lrmom = string.format("LR: %f MOM %f | ",rbm.learningrate,rbm.momentum)
+     err_recon  = string.format("ERROR: Recon %4.1f ",rbm.err_recon_train[epoch])
+     err_train     = string.format("TR: %f ", rbm.err_train[epoch] )
+     err_val       = string.format("VAL: %f |", rbm.err_val[epoch] )
+     epoch_time_patience = string.format("time: %4.0f Patience %i",epoch_time,patience)
      
-     --timer = torch.Timer()
-     err_train = 1-accuracy(rbm,x_train,y_train)
-     rbm.err_train[epoch] = err_train
-     --print(timer:time().real)
-     
-     if x_val and y_val then
-          err_val = 1-accuracy(rbm,x_val,y_val)
-          rbm.err_val[epoch] = err_val
-     if err_val < best_val_err then
-          best_val_err = err_val
-          patience = rbm.patience
-          saverbm(rbm.tempfile,rbm) -- save current best
-          best_rbm = cprbm(rbm)     -- save best weights
-          best = '***'
-     else
-          patience = patience - 1 
-          best = ''
-     end
-     end
-     
-     print(string.format("%i/%i -LR: %f, MOM %f -  Recon err: %4.1f err TR: %f err VAL: %f  time: %f Patience %i  %s", epoch, rbm.numepochs,                     rbm.learningrate,rbm.momentum, rbm.cur_err[1],err_train,err_val or 1/0,epoch_time, patience,best))
-     
-     
-     if patience < 0 then  -- Stop training
-          -- Cp weights from best_rbm
-          rbm.W = best_rbm.W:clone()
-          rbm.U = best_rbm.U:clone()
-          rbm.b = best_rbm.b:clone()
-          rbm.c = best_rbm.c:clone()
-          rbm.d = best_rbm.d:clone()
-          break
-     end
-     
-     end
-
-total_time = socket.gettime() - total_time 
-print("Mean epoch time:", total_time / rbm.numepochs)
-return(rbm)
-
+     outstr = strepoch .. lrmom .. err_recon .. err_train .. err_val .. epoch_time_patience .. best
+     print(outstr)
+  
 end
 
 function getsamples(rbm,x_train,y_train,x_semisup,i_tr)

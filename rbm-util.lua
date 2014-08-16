@@ -12,7 +12,7 @@ function sigm(x)
 	return(o)
 end
 
-function printRBM(rbm,xt,xv,xs)
+function printrbm(rbm,xt,xv,xs)
      print("---------------------RBM------------------------------------")
      
      if xt then print(string.format("Number of trainig samples    :  %i",xt:size(1))) end

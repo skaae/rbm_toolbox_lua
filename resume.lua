@@ -20,9 +20,10 @@ local finalfile = 'discriminative_dropout_final.asc'             -- Name of fina
 
 -- DO TRAINING
 local rbm = loadrbm('../rbmtemp/discriminative_dropout_temp.asc')
+rbm.tempfile = paths.concat(tempfolder,tempfile)
 rbm.numepochs = 200
-rbm = rbmtrain(rbm,x_train,y_train,x_val,y_val)
-saverbm(paths.concat(tempfolder,finalfile), rbm)
+--rbm = rbmtrain(rbm,x_train,y_train,x_val,y_val)
+--saverbm(paths.concat(tempfolder,finalfile), rbm)
 local acc_train = accuracy(rbm,x_train,y_train)
 local acc_val = accuracy(rbm,x_val,y_val)
 local acc_test = accuracy(rbm,x_test,y_test)
