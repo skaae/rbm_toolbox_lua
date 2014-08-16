@@ -201,7 +201,7 @@ The figures below show differeces between training without dropout (left) and wi
 First the validation error and training error is plotted. Training with dropout requires many more epochs before convergence.
 The second figure vizualizes the learned filters. 
 
-<img src="/uploads/ex1_trainval.png" height="400" width="600">    
+<img src="/uploads/ex1_trainval.png" height="400" width="400">    
 
 
 <img src="/uploads/ex1_weights.png" height="700" width="550">   
