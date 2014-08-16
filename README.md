@@ -181,13 +181,6 @@ The results are:
  * Test error       : 	0.0188	
 Which is comparable to the results reported in [7].
 
-The figure below shows the training and validation error during trainig:
-
-<img src="/uploads/ex1_trainval.png" height="400" width="400"> 
-
-Finally the learned filters can be vizualized:
-
-<img src="/uploads/ex1_weights.png" height="550" width="550"> 
 
 The results can be improved significantly by enabling dropout:
 
@@ -204,11 +197,18 @@ Test error       : 	0.0141
 
 These results are significantly better than non-dropout and similar to the performance of an SVM.
 
-Training error, valdiation error and weights for the dropout discriminativ model are shown below:
+The figures below show differeces between training without dropout (left) and with dropout (right).
+First the validation error and training error is plotted. Training with dropout requires many more epochs before convergence.
+The second figure vizualizes the learned filters. 
 
-<img src="/uploads/discrminative_dropout_ex1.png" height="400" width="400">   
+<img src="/uploads/ex1_trainval.png" height="400" width="600">    
 
-<img src="/uploads/discriminative_dropout_ex1.png" height="550" width="550">    
+
+<img src="/uploads/ex1_weights.png" height="700" width="550">   
+
+
+DO DROPOUT DISCRIMINATIVE WITH SPARSITY??
+
 
 
 The graphs are created in MATLAB. I created a simple script to pass RBM's from Torch to MATLAB
