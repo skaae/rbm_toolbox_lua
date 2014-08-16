@@ -29,10 +29,11 @@ local patience = rbm.patience
 total_time  = socket.gettime()
 
 -- extend error tensors if resuming training
-if rbm.rbm.err_train:size(1) <= rbm.numepochs then
-     rbm.err_recon_train = extendTensor(rbm.err_trecon_train,rbm.numepochs)
-     rbm.err_train = extendTensor(rbm.err_train,rbm.numepochs)
-     rbm.err_val = extendTensor(rbm.err_val,rbm.numepochs)
+if rbm.err_train:size(1) <= rbm.numepochs then
+     rbm.err_recon_train = extendTensor(rbm,rbm.err_trecon_train,rbm.numepochs)
+     rbm.err_train = extendTensor(rbm,rbm.err_train,rbm.numepochs)
+     rbm.err_val = extendTensor(rbm,rbm.err_val,rbm.numepochs)
+     print("extend RBM:",rbm)
 end
 
 for epoch = rbm.currentepoch, rbm.numepochs do 
@@ -187,10 +188,10 @@ function cprbm(rbm)
 end
 
 -- extend old tensor to 
-function extendTensor(oldtensor,newsize,fill)
+function extendTensor(rbm,oldtensor,newsize,fill)
      if fill then fill = fill else fill = -1 end
      local newtensor
      newtensor = torch.Tensor(newsize):fill(fill)
-     newtensor[{{1,oldtensor:size(1)}}] = oldtensor:clone()
+     newtensor[{{1,rbm.currentepoch}}] = oldtensor:clone()
      return newtensor
 end
