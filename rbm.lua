@@ -4,7 +4,7 @@ require('torch')
 require('rbm-util')
 require('rbm-regularization')
 require('rbm-grads')
-require ('socket')  -- for timing 
+--require ('socket')  -- for timing 
 
 
 
@@ -14,7 +14,7 @@ function rbmtrain(rbm,x_train,y_train,x_val,y_val,x_semisup)
      printrbm(rbm,x_train,x_val,x_semisup)
 
      patience = rbm.patience
-     total_time  = socket.gettime()
+     total_time  = os.time()
 
      -- extend error tensors if resuming training
      if rbm.err_train:size(1) <= rbm.numepochs then
@@ -27,7 +27,7 @@ function rbmtrain(rbm,x_train,y_train,x_val,y_val,x_semisup)
 
      best_val_err = best_val_err or 1/0
      for epoch = rbm.currentepoch, rbm.numepochs do 
-          epoch_time = socket.gettime()
+          epoch_time = os.time()
           rbm.cur_err = torch.zeros(1)
           rbm.currentepoch = epoch
           
@@ -53,7 +53,7 @@ function rbmtrain(rbm,x_train,y_train,x_val,y_val,x_semisup)
                end
 
           end  -- end samples loop          
-          epoch_time = socket.gettime() - epoch_time 
+          epoch_time = os.time() - epoch_time 
 
           -- calc. train recon err and train pred error
           rbm.err_recon_train[epoch]    = rbm.cur_err:div(rbm.n_samples)
@@ -73,7 +73,7 @@ function rbmtrain(rbm,x_train,y_train,x_val,y_val,x_semisup)
                     best = ''
                end
           end         
-          diplayprogress(rbm,epoch,epoch_time,patience,best)
+          displayprogress(rbm,epoch,epoch_time,patience,best or '')
           
           if patience < 0 then  -- Stop training
                -- Cp weights from best_rbm
@@ -86,7 +86,7 @@ function rbmtrain(rbm,x_train,y_train,x_val,y_val,x_semisup)
           end
           
      end  -- end epoch loop
-     total_time = socket.gettime() - total_time 
+     total_time = os.time() - total_time 
      print("Mean epoch time:", total_time / rbm.numepochs)
      return(rbm)
 end

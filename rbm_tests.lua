@@ -92,6 +92,7 @@ rbm.traintype = 0 -- CD
 rbm.npcdchains = 1
 rbm.cdn = 1
 rbm.n_hidden  = n_hidden
+rbm.currentepoch = 1
 
 ---------------------------------------------------------
 -- TRUE VALUES rbm-util

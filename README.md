@@ -207,10 +207,6 @@ The second figure vizualizes the learned filters.
 <img src="/uploads/ex1_weights.png" height="700" width="550">   
 
 
-DO DROPOUT DISCRIMINATIVE WITH SPARSITY??
-
-
-
 The graphs are created in MATLAB. I created a simple script to pass RBM's from Torch to MATLAB
 
 In Torch do:
@@ -241,6 +237,16 @@ idx = idx(1:100);
 visualize(rbm.W(idx,:)')
 axis off;
 ```
+
+
+# TODO
+
+ 1 DO DROPOUT DISCRIMINATIVE WITH SPARSITY?
+ 2 Use momentum to smooth gradients? + Decrease learning rate 
+ 3 Generative training example + samples drawn from model
+ 4 Hybrid training exampe
+ 5 Semisupervised example
+ 6 Implement stacking of RBM's
 
 # References
 
