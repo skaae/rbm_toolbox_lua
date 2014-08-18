@@ -17,7 +17,7 @@ function rbmtrain(rbm,x_train,y_train,x_val,y_val,x_semisup)
      total_time  = os.time()
 
      -- extend error tensors if resuming training
-     if rbm.err_train:size(1) <= rbm.numepochs then
+     if rbm.err_train:size(1) < rbm.numepochs then
           best_val_err = rbm.err_val[rbm.currentepoch]
           rbm.err_recon_train = extendTensor(rbm, rbm.err_recon_train,rbm.numepochs)
           rbm.err_train = extendTensor(rbm,rbm.err_train,rbm.numepochs)
