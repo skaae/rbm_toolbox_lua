@@ -26,6 +26,7 @@ function rbmtrain(rbm,x_train,y_train,x_val,y_val,x_semisup)
      end
 
      best_val_err = best_val_err or 1/0
+     print("Best Val err",best_val_err)
      for epoch = rbm.currentepoch, rbm.numepochs do 
           epoch_time = os.time()
           rbm.cur_err = torch.zeros(1)
