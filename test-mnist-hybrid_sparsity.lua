@@ -28,7 +28,7 @@ os.execute('mkdir -p ' .. tempfolder)              -- Create save folder if it d
 opts.tempfile = paths.concat(tempfolder,tempfile)  -- current best is saved to this folder
 opts.traintype = 'CD'
 opts.cdn = 1
-opts.n_hidden     = 1500
+opts.n_hidden     = 3000
 opts.dropout      = 0
 opts.numepochs    = 500
 opts.sparsity     = 0.0001

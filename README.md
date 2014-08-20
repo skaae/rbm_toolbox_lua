@@ -241,12 +241,12 @@ axis off;
 
 # TODO
 
- 1 DO DROPOUT DISCRIMINATIVE WITH SPARSITY?
- 2 Use momentum to smooth gradients? + Decrease learning rate 
- 3 Generative training example + samples drawn from model
- 4 Hybrid training exampe
- 5 Semisupervised example
- 6 Implement stacking of RBM's
+ 1. DO DROPOUT DISCRIMINATIVE WITH SPARSITY?   
+ 2. Use momentum to smooth gradients? + Decrease learning rate    
+ 3. Generative training example + samples drawn from model   
+ 4. Hybrid training exampe
+ 5. Semisupervised example
+ 6. Implement stacking of RBM's
 
 # References
 
