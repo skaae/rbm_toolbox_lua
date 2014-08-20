@@ -40,7 +40,7 @@ function rbmtrain(rbm,x_train,y_train,x_val,y_val,x_semisup)
                updategradsandmomentum(rbm) 
                 
                -- update vW, vU, vb, vc and vd, formulae: vx = vX*mom + dX
-               restoreorgweights(rbm,i)                             -- restore weights from before dropping                        
+               restoreorgweights(rbm,i)                             -- restore weights if dropconnect                      
                updateweights(rbm)                                   -- updates W,U,b,c and d, formulae: X =  X + vX
                
                if (i %  5000) == 0 then                              -- indicate progress
