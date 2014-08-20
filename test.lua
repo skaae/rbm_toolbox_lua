@@ -11,7 +11,7 @@ require 'paths'
 
 torch.manualSeed(101)
 torch.setdefaulttensortype('torch.FloatTensor')
-torch.setnumthreads(4)
+torch.setnumthreads(1)
 
 --------------------------
 --       LOAD DATA      --
@@ -19,6 +19,26 @@ torch.setnumthreads(4)
 mnist_folder = '../mnist-th7'
 rescale = 1
 x_train, y_train, x_val, y_val, x_test, y_test = mnist.createdatasets(mnist_folder,rescale) 
+
+
+_,y_trainidx = torch.max(y_train,2)
+
+trainSet = {
+    data = x_train,
+    labels = y_trainidx,
+    size = 60000
+}
+
+nInputs = 784
+nOutputs = 10
+nHidden = nInputs / 2
+-- Container = Sequential
+model = nn.Sequential()
+model:add(nn.Reshape(nInputs))
+model:add(nn.Linear(nInputs, nHidden))
+model:add(nn.Tanh())
+model:add(nn.Linear(nHidden, nOutputs))
+model:forward(trainSet.data[200])
 
 
 ----------------------------
@@ -33,11 +53,5 @@ x_train, y_train, x_val, y_val, x_test, y_test = mnist.createdatasets(mnist_fold
 --opts.beta = 0
 --opts.isgpu = 0
 
-acc_train = accuracy(rbm,x_train,y_train)
-acc_val = accuracy(rbm,x_val,y_val)
-acc_test = accuracy(rbm,x_test,y_test)
-print('Train error      : ', 1-acc_train)
-print('Validation error : ', 1-acc_val)
-print('Test error       : ', 1-acc_test)
 
 
