@@ -1,10 +1,10 @@
 regularization = {}
 
 function regularization.applyregularization(rbm)
-          if rbm.sparsity > 0 then
-               rbm.db:add(-rbm.sparsity)
-               rbm.dc:add(-rbm.sparsity)
-               rbm.dd:add(-rbm.sparsity)
+         if rbm.sparsity > 0 then
+              -- rbm.db:add(-rbm.sparsity)   -- db is bias of visible layer
+               rbm.dc:add(-rbm.sparsity)   -- dc is bias of hidden layer
+              -- rbm.dd:add(-rbm.sparsity)   -- dd is bias of "label" layer
           end
           
           if rbm.L1 > 0 then
