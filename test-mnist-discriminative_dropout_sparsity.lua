@@ -12,7 +12,7 @@ mnist_folder = '../mnist-th7'
 rescale = 1
 x_train, y_train, x_val, y_val, x_test, y_test = mnist.createdatasets(mnist_folder,rescale) 
    
-num_threads = 2
+num_threads = 1
 torch.setnumthreads(num_threads)
 if torch.getnumthreads() < num_threads then
      print("Setting number of threads had no effect. Maybe install with gcc 4.9 for openMP?")
