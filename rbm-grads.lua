@@ -95,7 +95,7 @@ function grads.pygivenx(rbm,x,tcwx_pre_calc)
      tcwx_pre_calc = tcwx_pre_calc or torch.mm( x,rbm.W:t() ):add( rbm.c:t() )
      F = torch.add( rbm.U, torch.mm(tcwx_pre_calc:t(), rbm.one_by_classes) )
      pyx = softplus(F):sum(1)        -- p(y|x) logprob
-     pyx:add(-torch.max(pyx))       -- divide by max,  log domain
+     pyx:add(-torch.max(pyx))       -- subtract max for numerical stability
      pyx:exp()                      -- convert to real domain
      pyx:mul( ( 1/pyx:sum() ))      -- normalize probabilities
      return pyx,F
@@ -114,7 +114,7 @@ function grads.pygivenxdropout(rbm,x,tcwx_pre_calc)
      F_softplus:cmul(mask_expanded) -- Apply dropout mask
      
      pyx = F_softplus:sum(1)        -- p(y|x) logprob
-     pyx:add(-torch.max(pyx))       -- divide by max,  log domain
+     pyx:add(-torch.max(pyx))       -- subtract max for numerical stability
      pyx:exp()                      -- convert to real domain
      pyx:mul( ( 1/pyx:sum() ))      -- normalize probabilities
      return pyx,F,mask_expanded

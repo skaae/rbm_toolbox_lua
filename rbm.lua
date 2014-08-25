@@ -34,13 +34,12 @@ function rbmtrain(rbm,x_train,y_train,x_val,y_val,x_semisup)
           
           for i = 1, x_train:size(1) do  -- iter over samples
                x_tr,y_tr,x_semi = getsamples(rbm,x_train,y_train,x_semisup,i)
-               regularization.applydropoutordropconnect(rbm,i)      -- cp org weights, drops weights if enabled
+               regularization.dropout(rbm)                          -- create dropout mask for hidden units
                grads.calculategrads(rbm,x_tr,y_tr,x_semi)           -- calculates dW, dU, db, dc and dd
                regularization.applyregularization(rbm)              -- regularizes dW, dU, db, dc and dd
                updategradsandmomentum(rbm) 
                 
-               -- update vW, vU, vb, vc and vd, formulae: vx = vX*mom + dX
-               restoreorgweights(rbm,i)                             -- restore weights if dropconnect                      
+               -- update vW, vU, vb, vc and vd, formulae: vx = vX*mom + dX                    
                updateweights(rbm)                                   -- updates W,U,b,c and d, formulae: X =  X + vX
                
                if (i %  5000) == 0 then                              -- indicate progress
@@ -49,7 +48,7 @@ function rbmtrain(rbm,x_train,y_train,x_val,y_val,x_semisup)
                end
                
                -- Force garbagecollector to collect
-               if (i % 100) == 0 then
+               if (i % 20) == 0 then
                     collectgarbage()
                end
 
@@ -162,17 +161,6 @@ function updateweights(rbm)
       rbm.d:add(rbm.vd)
 end
 
-
-
-
-function restoreorgweights(rbm,i)
-     if rbm.dropconnect > 0 then
-          -- TODO: not sure if i need to clone here
-          rbm.W = rbm.W_org:clone();    
-          rbm.U = rbm.U_org:clone(); 
-          rbm.c = rbm.c_org:clone(); 
-     end
-end
 
 function cprbm(rbm)
      newrbm = {}

@@ -12,6 +12,15 @@ function sigm(x)
 	return(o)
 end
 
+function normalizeexprowvec(x)
+     -- Calculate exp(x) / sum(exp(x)) in numerically stable way
+     -- x is a row vector 
+     exp_x = torch.exp(x - torch.max(x))
+     normalizer = torch.mm(exp_x:sum(2), torch.ones(1,x:size(2)))
+     return exp_x:cdiv( normalizer )
+end
+
+
 function printrbm(rbm,xt,xv,xs)
      print("---------------------RBM------------------------------------")
      
@@ -96,10 +105,10 @@ function rbmdownx(rbm,act_hid)
 end
 
 function rbmdowny(rbm,act_hid)
-     local act_vis_y,normalizer
-	act_vis_y = torch.mm( act_hid,rbm.U ):add( rbm.d:t() ):exp()
-	normalizer = torch.sum(act_vis_y,2):expand(act_vis_y:size())
-	act_vis_y:cdiv(normalizer)
+     local act_vis_y
+	act_vis_y = torch.mm( act_hid,rbm.U ):add( rbm.d:t() )
+
+     act_vis_y = normalizeexprowvec(act_vis_y)
 	return act_vis_y
 end
 

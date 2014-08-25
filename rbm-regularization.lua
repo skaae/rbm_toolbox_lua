@@ -19,29 +19,11 @@ function regularization.applyregularization(rbm)
 end
 
 
-function regularization.applydropoutordropconnect(rbm,i)
+function regularization.dropout(rbm)
+     -- Create dropout mask for hidden units
      if rbm.dropout > 0 then
           rbm.dropout_mask = torch.lt( torch.rand(1,rbm.n_hidden),rbm.dropout ):typeAs(rbm.W)
-     end
-
-     -- dropconnect randomly knocks out connections, + backup org weights
-     if rbm.dropconnect > 0 then
-          local mask_dropout_W, mask_dropout_U, mask_dropout_c 
-          
-          -- backup org weights
-          rbm.W_org = rbm.W:clone();   
-          rbm.U_org = rbm.U:clone(); 
-          rbm.c_org = rbm.c:clone(); 
-          
-          -- create mask and apply them on weights, original weights are restored after updates, see restorweights in rbm.lua
-          rbm.mask_dropconnect_W = torch.gt( torch.rand( rbm.W:size() ), rbm.dropconnect ):typeAs(rbm.W)
-          rbm.mask_dropconnect_U = torch.gt( torch.rand( rbm.U:size() ), rbm.dropconnect ):typeAs(rbm.U)
-          rbm.mask_dropconnect_c = torch.gt( torch.rand( rbm.c:size() ), rbm.dropconnect ):typeAs(rbm.c)
-          rbm.W = torch.cmul(rbm.W, rbm.mask_dropconnect_W)
-          rbm.U = torch.cmul(rbm.U, rbm.mask_dropconnect_U)
-          rbm.c = torch.cmul(rbm.c, rbm.mask_dropconnect_c)
-     end
-     
+     end     
 end
 
 function regularization.mask2sub(x)
