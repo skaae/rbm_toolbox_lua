@@ -20,23 +20,24 @@ end
 
 -- SETUP RBM
 local opts = {}
-local tempfile = 'hybrid_dropout_temp.asc'
+local tempfile = 'hybrid_sparsity_dropout_decay_temp.asc'
 local tempfolder = '../rbmtemp'
 os.execute('mkdir -p ' .. tempfolder)              -- create tempfolder if it does not exist
-local finalfile = 'hybrid_dropout_final.asc'             -- Name of final RBM file
+local finalfile = 'hybrid_sparsity_dropout_decay_final.asc'             -- Name of final RBM file
 os.execute('mkdir -p ' .. tempfolder)              -- Create save folder if it does not exists
 opts.tempfile = paths.concat(tempfolder,tempfile)  -- current best is saved to this folder
 opts.traintype = 'CD'
 opts.cdn = 1
 opts.n_hidden     = 3000
 opts.dropout      = 0.5
-opts.numepochs    = 500
+opts.numepochs    = 1500
 opts.patience     = 15                             -- early stopping is always enabled, to disble set this to inf = 1/0   
 opts.learningrate = 0.05
+opts.sparsity = 0.0001
 opts.alpha = 0.01
 opts.beta = 0
 opts.isgpu = 0
-opts.dropouttype = "bernoulli"
+opts.lrdecay = 3
 
 -- DO TRAINING
 local rbm = rbmsetup(opts,x_train, y_train)

@@ -9,6 +9,8 @@ require('rbm-grads')
 
 
 function rbmtrain(rbm,x_train,y_train,x_val,y_val,x_semisup)
+     
+
      -- train RBM
      local x_tr,y_tr,x_semi, total_time, epoch_time,acc_train, best_val_err,patience, best_rbm,best
      printrbm(rbm,x_train,x_val,x_semisup)
@@ -68,9 +70,22 @@ function rbmtrain(rbm,x_train,y_train,x_val,y_val,x_semisup)
                     saverbm(rbm.tempfile,rbm) -- save current best
                     best_rbm = cprbm(rbm)     -- save best weights
                     best = '***'
+                    lastdecay = rbm.lrdecay
                else
                     patience = patience - 1 
                     best = ''
+
+                    -- DECAY laarning rate
+                    if rbm.lrdecay ~= 0 then
+                        lastdecay = lastdecay or rbm.lrdecay  -- init decay
+                        lastdecay = lastdecay - 1
+
+                        if lastdecay == 0 then
+                            lastdecay = rbm.lrdecay
+                            rbm.learningrate = rbm.learningrate / 2
+                            print("Decay learning rate")
+                        end
+                    end 
                end
           end         
           displayprogress(rbm,epoch,epoch_time,patience,best or '')
@@ -107,12 +122,28 @@ function displayprogress(rbm,epoch,epoch_time,patience,best)
 end
 
 function getsamples(rbm,x_train,y_train,x_semisup,i_tr)
-     local x_tr, y_tr
-     x_tr = x_train[i_tr]:resize(1,x_train:size(2))
-     y_tr = y_train[i_tr]:resize(1,y_train:size(2))
-     if rbm.beta > 0 then
+     local x_tr, y_tr,i_semi,x_semi
+     
+     -- Fetch X values. Choose if X should be sampled or not
+     -- Sampling mostly usefull for stacked RBM's
+     x_tr = x_train[i_tr]:resize(1, rbm.n_visible)
+     if rbm.samplex then
+          x_tr = sampler(x_tr,rbm.rand)
+     end
+
+     
+     if rbm.toprbm == 1 then
+        -- For TOP RBM we need to fetch the class labels
+        y_tr = y_train[i_tr]:resize(1, rbm.n_classes )
+     else
+        -- for non top rbm's we just clamp Y to zero which is the same 
+        -- as training p(x)
+        y_tr = torch.zeros(1,rbm.n_classes)
+     end
+
+     if rbm.beta > 0 then  -- return semisupervised samples aswell
            i_semi = (i_tr-1) % x_semisup:size(1) +1;
-           x_semi = x_semisup[i_tr]:resize(1,x_semisup:size(2))
+           x_semi = x_semisup[i_tr]:resize(1,rbm.n_visible)
      end
      
      return x_tr,y_tr,x_semi

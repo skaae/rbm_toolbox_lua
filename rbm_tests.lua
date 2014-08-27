@@ -26,6 +26,7 @@ opts.beta = 0
 opts.dropconnect = 0
 
 
+
 local n_classes = 4;
 local n_hidden  = 7;
 local n_visible = 3;
@@ -93,6 +94,9 @@ rbm.npcdchains = 1
 rbm.cdn = 1
 rbm.n_hidden  = n_hidden
 rbm.currentepoch = 1
+rbm.bottomrbm = 1
+rbm.toprbm = 1
+rbm.samplex = false
 
 ---------------------------------------------------------
 -- TRUE VALUES rbm-util

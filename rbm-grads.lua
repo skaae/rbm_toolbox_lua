@@ -8,6 +8,7 @@ function grads.generative(rbm,x,y,tcwx,chx,chy)
      h0 = sigm( torch.add(tcwx, torch.mm(y,rbm.U:t() ) ) ) --   UP
      
      if rbm.dropout >  0 then
+          h0:cmul(rbm.dropout_mask)
           drop = 1
      end
      

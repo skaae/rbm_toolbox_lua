@@ -239,6 +239,20 @@ axis off;
 ```
 
 
+# Example Discriminative + Dropout + sparsity
+
+file test-mnist-discriminative_dropout_sparsity.txt
+Number of hidden             :  1000		
+Patience                     :  15	
+Sparisty                     :  0.000100		
+DropOut                      :  0.500000	
+
+
+Train error      : 	0.00044	
+Validation error : 	0.0158	
+Test error       : 	0.0189
+
+
 # TODO
 
  1. DO DROPOUT DISCRIMINATIVE WITH SPARSITY?   

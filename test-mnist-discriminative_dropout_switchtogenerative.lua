@@ -32,7 +32,7 @@ opts.n_hidden     = 1000
 opts.dropout      = 0.5
 opts.numepochs    = 500
 opts.patience     = 15                             -- early stopping is always enabled, to disble set this to inf = 1/0   
-opts.learningrate = 0.05
+opts.learningrate = 0.005
 opts.alpha = 1
 opts.beta = 0
 opts.isgpu = 0

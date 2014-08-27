@@ -22,7 +22,13 @@ end
 function regularization.dropout(rbm)
      -- Create dropout mask for hidden units
      if rbm.dropout > 0 then
-          rbm.dropout_mask = torch.lt( torch.rand(1,rbm.n_hidden),rbm.dropout ):typeAs(rbm.W)
+        if rbm.dropouttype == "bernoulli" then
+            rbm.dropout_mask = torch.lt( torch.rand(1,rbm.n_hidden),rbm.dropout ):typeAs(rbm.W)
+        elseif rbm.dropouttype == "gauss" then
+             rbm.dropout_mask = torch.randn(1,rbm.n_hidden):add(1):typeAs(rbm.W)
+        else
+            assert(false)
+        end
      end     
 end
 

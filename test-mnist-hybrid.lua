@@ -30,7 +30,7 @@ opts.traintype = 'CD'
 opts.cdn = 1
 opts.n_hidden     = 1500
 opts.dropout      = 0
-opts.numepochs    = 500
+opts.numepochs    = 1500
 opts.patience     = 15                             -- early stopping is always enabled, to disble set this to inf = 1/0   
 opts.learningrate = 0.05
 opts.alpha = 0.01

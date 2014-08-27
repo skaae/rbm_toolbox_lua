@@ -9,7 +9,7 @@ require('rbm-grads')
 -- @return Tensor size [1,n_vislbe]
 function sigm(x)
      local o = torch.exp(-x):add(1):pow(-1)
-	return(o)
+     return(o)
 end
 
 function normalizeexprowvec(x)
@@ -37,6 +37,8 @@ function printrbm(rbm,xt,xv,xs)
      if rbm.beta > 0 then ttype = ttype .. " + SEMISUP" end
      
      print(string.format("Training type                :  %s",ttype))
+     print(string.format("Top RBM                      :  %i",rbm.toprbm))
+     print(string.format("Saple X                      :  %s",rbm.samplex))
      print(string.format("Number of visible            :  %i",rbm.W:size(2)))
      print(string.format("Number of hidden             :  %i",rbm.W:size(1)))
      print(string.format("Number of classes            :  %i",rbm.U:size(2)))
@@ -44,6 +46,7 @@ function printrbm(rbm,xt,xv,xs)
      print(string.format("Number of epocs              :  %i",rbm.numepochs))
      print(string.format("Current   epoc               :  %i",rbm.currentepoch))
      print(string.format("Learning rate                :  %f",rbm.learningrate))
+     print(string.format("Learning rate decay          :  %f",rbm.lrdecay))
      print(string.format("Momentum                     :  %f",rbm.momentum))
      print(string.format("alpha                        :  %f",rbm.alpha))
      print(string.format("beta                         :  %f",rbm.beta))
@@ -64,6 +67,7 @@ function printrbm(rbm,xt,xv,xs)
      print(string.format("L1                           :  %f",rbm.L1))
      print(string.format("L2                           :  %f",rbm.L2))
      print(string.format("DropOut                      :  %f",rbm.dropout))
+     print(string.format("DropOut type                 :  %s",rbm.dropouttype))   
      print(string.format("DropConnect                  :  %f",rbm.dropconnect))
      print("------------------------------------------------------------")
     
@@ -106,32 +110,33 @@ end
 
 function rbmdowny(rbm,act_hid)
      local act_vis_y
-	act_vis_y = torch.mm( act_hid,rbm.U ):add( rbm.d:t() )
+     act_vis_y = torch.mm( act_hid,rbm.U ):add( rbm.d:t() )
 
      act_vis_y = normalizeexprowvec(act_vis_y)
-	return act_vis_y
+     return act_vis_y
 end
 
 function samplevec(x,ran)
      local r,x_c,larger,sample
-	r = ran(1,1):expand(x:size())
-	x_c = torch.cumsum(x,2)
-	larger = torch.ge(x_c,r)
-	sample = torch.eq(torch.cumsum(larger,2),1):typeAs(x) 
-	return sample
+     r = ran(1,1):expand(x:size())
+     x_c = torch.cumsum(x,2)
+     larger = torch.ge(x_c,r)
+     sample = torch.eq(torch.cumsum(larger,2),1):typeAs(x) 
+     return sample
 end
 
 function sampler(dat,ran)
-	local ret = torch.gt(dat, ran(1,dat:size(2))):typeAs(dat)
-	return(ret)
+     local ret = torch.gt(dat, ran(1,dat:size(2))):typeAs(dat)
+     return(ret)
 end
 
 function classprobs(rbm,x)
-     local probs, n_visible,x_i,p_i
-     n_visible = x:size(2)
+     local probs,x_i,p_i
+     
+     -- Iter over examples and calculate the class probs
      probs = torch.Tensor(x:size(1),rbm.n_classes)
      for i = 1, x:size(1) do
-          x_i =x[i]:resize(1,n_visible)
+          x_i =x[i]:resize(1,rbm.n_visible)
           p_i = grads.pygivenx(rbm,x_i)
           probs[{i,{}}] = p_i
      end
@@ -172,37 +177,44 @@ end
 
 
 function rbmsetup(opts,x,y,x_semisup)
-	local n_samples = x:size(1)
-	local n_visible = x:size(2)
-	local n_classes = y:size(2)
+     local n_samples = x:size(1)
+     local n_visible = x:size(2)
+     local n_classes = y:size(2)
      
 
-	local rbm = {}
+     local rbm = {}
 
-	rbm.U = initcrbm(opts.n_hidden,n_classes)
-	rbm.W = initcrbm(opts.n_hidden,n_visible)
-	rbm.b = torch.zeros(n_visible,1)
-	rbm.c = torch.zeros(opts.n_hidden,1)
-	rbm.d = torch.zeros(n_classes,1)
+     rbm.U = initcrbm(opts.n_hidden,n_classes)
+     rbm.W = initcrbm(opts.n_hidden,n_visible)
+     rbm.b = torch.zeros(n_visible,1)
+     rbm.c = torch.zeros(opts.n_hidden,1)
+     rbm.d = torch.zeros(n_classes,1)
 
 
-	rbm.vW = torch.zeros(rbm.W:size()):zero()
-	rbm.vU = torch.zeros(rbm.U:size()):zero()
-	rbm.vb = torch.zeros(rbm.b:size()):zero()
-	rbm.vc = torch.zeros(rbm.c:size()):zero()
-	rbm.vd = torch.zeros(rbm.d:size()):zero()
+     rbm.vW = torch.zeros(rbm.W:size()):zero()
+     rbm.vU = torch.zeros(rbm.U:size()):zero()
+     rbm.vb = torch.zeros(rbm.b:size()):zero()
+     rbm.vc = torch.zeros(rbm.c:size()):zero()
+     rbm.vd = torch.zeros(rbm.d:size()):zero()
 
      rbm.dW = torch.Tensor(rbm.W:size()):zero()
-	rbm.dU = torch.Tensor(rbm.U:size()):zero()
-	rbm.db = torch.Tensor(rbm.b:size()):zero()
-	rbm.dc = torch.Tensor(rbm.c:size()):zero()
-	rbm.dd = torch.Tensor(rbm.d:size()):zero()
+     rbm.dU = torch.Tensor(rbm.U:size()):zero()
+     rbm.db = torch.Tensor(rbm.b:size()):zero()
+     rbm.dc = torch.Tensor(rbm.c:size()):zero()
+     rbm.dd = torch.Tensor(rbm.d:size()):zero()
      
      rbm.rand  = function(m,n) return torch.rand(m,n) end 
-	rbm.n_classes       = y:size(2) 
-	rbm.n_visible       = x:size(2)
-	rbm.n_samples       = x:size(1)
+     rbm.n_classes       = y:size(2) 
+     rbm.n_visible       = x:size(2)
+     rbm.n_samples       = x:size(1)
      rbm.n_hidden        = opts.n_hidden
+
+     -- A single RBM will be both top and bottom
+     rbm.toprbm          = opts.toprbm or 1
+
+     -- Determine if values that are passed up a stacked RBM should be sampled
+     -- or not
+     rbm.samplex         = opts.samplex or false
      
      -- prealocate som matrices
      rbm.one_by_classes  = torch.ones(1,rbm.U:size(2))
@@ -210,9 +222,10 @@ function rbmsetup(opts,x,y,x_semisup)
 
 
      -- Max epochs, lr and Momentum
-	rbm.numepochs       = opts.numepochs or 5
+     rbm.numepochs       = opts.numepochs or 5
      rbm.currentepoch    = 1
-	rbm.learningrate    = opts.learningrate or 0.05
+     rbm.learningrate    = opts.learningrate or 0.05
+     rbm.lrdecay         = opts.lrdecay or 0
      rbm.momentum        = opts.momentum or 0
      rbm.traintype       = opts.traintype or 'CD'   -- CD or PCD
      rbm.cdn             = opts.cdn or 1
@@ -224,6 +237,7 @@ function rbmsetup(opts,x,y,x_semisup)
      
      -- REGULARIZATION
      rbm.dropout         = opts.dropout or 0
+     rbm.dropouttype     = opts.dropouttype or "bernoulli"
      rbm.dropconnect     = opts.dropconnect or 0
      rbm.L1              = opts.L1 or 0
      rbm.L2              = opts.L2 or 0
@@ -253,7 +267,7 @@ function rbmsetup(opts,x,y,x_semisup)
           rbm.traintype = 0
      end     
      
-	return(rbm)
+     return(rbm)
 end
 
 function saverbm(filename,rbm)
@@ -271,24 +285,24 @@ end
 
 
 function checkequality(t1,t2,prec,pr)
-	if pr then
-		print(t1)
-		print(t2)
-	end 
-	local prec = prec or -4
-	assert(torch.numel(t1)==torch.numel(t1))
-	
-	local res = torch.add(t1,-t2):abs()
-	res = torch.le(res, math.pow(10,prec))
-	res = res:sum()
-	local ret
-	if torch.numel(t1) == res then
-		ret = true
-	else
-		ret = false
-	end
+     if pr then
+          print(t1)
+          print(t2)
+     end 
+     local prec = prec or -4
+     assert(torch.numel(t1)==torch.numel(t1))
+     
+     local res = torch.add(t1,-t2):abs()
+     res = torch.le(res, math.pow(10,prec))
+     res = res:sum()
+     local ret
+     if torch.numel(t1) == res then
+          ret = true
+     else
+          ret = false
+     end
 
-	return ret
+     return ret
 
 end
 
