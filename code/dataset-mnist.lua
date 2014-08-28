@@ -64,7 +64,7 @@ function mnist.createdatasets(mnist_folder,rescale,tar_folder)
      local getLabels = function(x) 
                             local _,m
                             _,m =torch.max(x,2) 
-                            return m
+                            return torch.squeeze(m)
                           end
 
      mnist.unpack(mnist_folder,tar_folder)

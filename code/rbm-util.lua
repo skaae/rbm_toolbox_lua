@@ -366,7 +366,7 @@ function OneOfK(data)
     n_samples = data.labels:size(1)
     labels_vec = torch.zeros(n_samples,n_classes):float()
     for i =1,n_samples do
-      labels_vec[{i, data.labels[{i,1}] }] = 1
+      labels_vec[{i, data.labels[i] }] = 1
     end  
   end
   return labels_vec

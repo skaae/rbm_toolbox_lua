@@ -76,7 +76,7 @@ For mnist the training data looks like:
 ```SHELL
 {
   data : FloatTensor - size: 50000x784
-  labels : LongTensor - size: 50000x1
+  labels : LongTensor - size: 50000
 }
 ```
 
