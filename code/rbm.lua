@@ -64,7 +64,7 @@ function rbmtrain(rbm,train,val,semisup)
                end
                
                -- Force garbagecollector to collect
-               if (i % 20) == 0 then
+               if (i % 100) == 0 then
                     collectgarbage()
                end
 
