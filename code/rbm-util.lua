@@ -1,9 +1,3 @@
-require('nn')
-require('pl')
-require('torch')
-require('rbm-grads')
-
-
 --- Sigmoid function
 -- @x Tensor size [1,n_visible]
 -- @return Tensor size [1,n_vislbe]
@@ -152,7 +146,8 @@ end
 
 function accuracy(rbm,x,y_true)
      local pred,n_correct,acc,_
-     --print(y_true)
+     
+     -- Convert labels given as numbers to one of K
      if y_true:size(2) ~= 1 then -- try max
           _,y_true = torch.max(y_true,2)
           y_true = y_true:typeAs(x)
@@ -161,7 +156,7 @@ function accuracy(rbm,x,y_true)
      pred = predict(rbm,x)
      n_correct = torch.eq(y_true,pred):sum()
      acc = n_correct / x:size(1)
-     return(acc)
+     return 1-acc
 end
 
 function initcrbm(m,n)
@@ -176,10 +171,10 @@ function initcrbm(m,n)
 end
 
 
-function rbmsetup(opts,x,y,x_semisup)
-     local n_samples = x:size(1)
-     local n_visible = x:size(2)
-     local n_classes = y:size(2)
+function rbmsetup(opts,train,semisup)
+     local n_samples = train.data:size(1)
+     local n_visible = train.data:size(2)
+     local n_classes = train.labels:max()
      
 
      local rbm = {}
@@ -204,10 +199,11 @@ function rbmsetup(opts,x,y,x_semisup)
      rbm.dd = torch.Tensor(rbm.d:size()):zero()
      
      rbm.rand  = function(m,n) return torch.rand(m,n) end 
-     rbm.n_classes       = y:size(2) 
-     rbm.n_visible       = x:size(2)
-     rbm.n_samples       = x:size(1)
+     rbm.n_classes       = n_classes
+     rbm.n_visible       = n_visible
+     rbm.n_samples       = n_samples
      rbm.n_hidden        = opts.n_hidden
+     rbm.errorfunction   = opts.errorfunction or accuracy
 
      -- A single RBM will be both top and bottom
      rbm.toprbm          = opts.toprbm or 1
@@ -258,7 +254,7 @@ function rbmsetup(opts,x,y,x_semisup)
           rbm.chx =  x[{kk,{} }]:clone()
           rbm.chy =  y[{kk,{} }]:clone()
           if rbm.beta > 0 then
-               local kk_semisup = torch.randperm(x_semisup:size(1))
+               local kk_semisup = torch.randperm(semisup.x:size(1))
                kk_semisup =  kk_semisup[{ {1, rbm.npcdchains} }]
                rbm.chx_semisup = x_semisup[{kk_semisup,{} }]:clone()
                rbm.chy_semisup = y_semisup[{kk_semisup,{} }]:clone()
@@ -347,4 +343,33 @@ end
      csvigo.save{data=readerr(rbm.err_recon_train), path=paths.concat(folder,'rbmerr_recon_train.csv')} 
 end
 
+function trainAndPrint(opts,train,val,test,tempfolder,finalfile)
+     -- Train, Test, save and Print in one line
+     local rbm = rbmsetup(opts,train)
+     rbm = rbmtrain(rbm,train,val)
+     saverbm(paths.concat(tempfolder,finalfile), rbm)
+     local acc_train = accuracy(rbm,train.x,train.y_vec)
+     local acc_val = accuracy(rbm,val.x,val.y_vec)
+     local acc_test = accuracy(rbm,test.x,test.y_vec)
+     print('Train error      : ', 1-acc_train)
+     print('Validation error : ', 1-acc_val)
+     print('Test error       : ', 1-acc_test)
+     return rbm
+end
+
+function OneOfK(data)
+  -- creates one of K representaion of numeric labels
+
+  local n_classes, n_samples, labels_vec,i
+  if data.labels_vec == nil then
+    n_classes = data.labels:max()
+    n_samples = data.labels:size(1)
+    labels_vec = torch.zeros(n_samples,n_classes):float()
+    for i =1,n_samples do
+      labels_vec[{i, data.labels[{i,1}] }] = 1
+    end  
+  end
+  return labels_vec
+
+  end
 

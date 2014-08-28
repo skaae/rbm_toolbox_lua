@@ -28,9 +28,20 @@ The following is supported:
 A RBM with standard settings can be trained and with:
 
 ```LUA
+codeFolder = '/code/'     -- Relative path to code
+require(codeFolder..'rbm')
+require(codeFolder..'dataset-mnist')
+
 opts = {}
-rbm = rbmsetup(opts,x_train, y_train)
-rbm = rbmtrain(rbm,x_train,y_train,x_val,y_val)
+opts.n_hidden = 100
+
+
+mnist_folder = '../mnist-th7'
+tar_folder   = 'data'  
+rescale = 1
+train, val, test = mnist.createdatasets(mnist_folder,rescale,tar_folder) 
+rbm = rbmsetup(opts,train)
+rbm = rbmtrain(rbm,train,val)
 saverbm('rbm.asc',rbm)
 ```
 
@@ -40,47 +51,34 @@ You may resume training of an already trained RBM. E.g if you trained a RBM for 
 ```LUA
 rbm = loadrbm('rbm.asc')
 rbm.numepochs = 20
-rbm = rbmtrain(rbm,x_train,y_train,x_val,y_val) -- resumes training from current epoch
+rbm = rbmtrain(rbm,train,val) -- resumes training from current epoch
 ```
 
 Settings are controlled with the opts table. 
-Passing in an empty opts table to rbmsetup will use the default value. The following code shows valid opts fields 
-and their default value:
+Passing in an empty opts table to rbmsetup will use the default value. 
+Valid fields and default values can be seen by:
 
 ```LUA
- -- Max epochs, lr and Momentum
-rbm.numepochs       = opts.numepochs or 5
-rbm.learningrate    = opts.learningrate or 0.05
-rbm.momentum        = opts.momentum or 0
-rbm.traintype       = opts.traintype or 'CD'   -- CD or PCD
-rbm.cdn             = opts.cdn or 1
-rbm.npcdchains      = opts.npcdchains or 100
-
--- OBJECTIVE
-rbm.alpha           = opts.alpha or 1
-rbm.beta            = opts.beta or 0
-
--- REGULARIZATION
-rbm.dropout         = opts.dropout or 0
-rbm.dropconnect     = opts.dropconnect or 0
-rbm.L1              = opts.L1 or 0
-rbm.L2              = opts.L2 or 0
-rbm.sparsity        = opts.sparsity or 0
-rbm.patience        = opts.patience or 15
-
--- -
-rbm.tempfile        = opts.tempfile or "temp_rbm.asc"
-rbm.isgpu           = opts.isgpu or 0
+print(rbmsetup(opts,train))
 ```
 
 ## Passing in data
 Training, valdiation and semisupervised data are arguments to `rbmtrain`:
 
 ```LUA
-rbmtrain(rbm,x_train,y_train,x_val,y_val,x_semisup)
+rbmtrain(rbm,train,val,semisup)
 ```
 
 validation data and semisupervised data may be ommitted.
+For all data must be supplied as a table with fields 'data' and 'labels'.
+
+For mnist the training data looks like:
+```SHELL
+{
+  data : FloatTensor - size: 50000x784
+  labels : LongTensor - size: 50000x1
+}
+```
 
 ## Training objective
 
@@ -91,6 +89,30 @@ The training behavior is controlled with `opts.alpha`
  * 0 < opts.alpha < 1 : Hybrid training
 
  Amount of semisupervised training is controlled with `opts.beta`
+
+## Error measure
+Error measures can be specified with `opts.errorfunction`. The default is accuracy.
+The error function takes 3 inputs: `errorfunction(rbm,x_val,y_val)`.
+Note that the y_passed to the error function is 1-of-K encoded. 
+
+The default accuracy error function is shown below
+```LUA
+function accuracy(rbm,x,y_true)
+     local pred,n_correct,acc,_
+     
+     -- Convert labels given as numbers to one of K
+     if y_true:size(2) ~= 1 then -- try max
+          _,y_true = torch.max(y_true,2)
+          y_true = y_true:typeAs(x)
+     end
+     
+     pred = predict(rbm,x)
+     n_correct = torch.eq(y_true,pred):sum()
+     acc = n_correct / x:size(1)
+     return 1-acc
+end
+```
+The `predict` function returns RBM predictions, encoded as a class number.
 
 ## Regularization
 
@@ -131,20 +153,27 @@ Trains a discriminative RBM with 500 hidden units. The toolbox supports discrimi
 hybrid training as described in [7].
 
 ```LUA
+codeFolder = '../code/'
+
 require('torch')
-require('rbm')
-require('dataset-mnist')
-require('ProFi')
+require(codeFolder..'rbm')
+require(codeFolder..'dataset-mnist')
+require(codeFolder..'ProFi')
 require 'paths'
 
 torch.manualSeed(101)
 torch.setdefaulttensortype('torch.FloatTensor')
 
 -- LOAD DATA
-mnist_folder = '../mnist-th7'
+mnist_folder = '../../mnist-th7'
 rescale = 1
-x_train, y_train, x_val, y_val, x_test, y_test = mnist.createdatasets(mnist_folder,rescale) 
+train, val, test = mnist.createdatasets(mnist_folder,rescale) 
    
+num_threads = 1
+torch.setnumthreads(num_threads)
+if torch.getnumthreads() < num_threads then
+     print("Setting number of threads had no effect. Maybe install with gcc 4.9 for openMP?")
+end
 
 -- SETUP RBM
 local opts = {}
@@ -154,25 +183,18 @@ os.execute('mkdir -p ' .. tempfolder)              -- create tempfolder if it do
 local finalfile = 'discriminative_final.asc'             -- Name of final RBM file
 os.execute('mkdir -p ' .. tempfolder)              -- Create save folder if it does not exists
 opts.tempfile = paths.concat(tempfolder,tempfile)  -- current best is saved to this folder
+opts.traintype = 'CD'
+opts.cdn = 1
 opts.n_hidden     = 500
-opts.numepochs    = 200
+opts.numepochs    = 1000
 opts.patience     = 15                             -- early stopping is always enabled, to disble set this to inf = 1/0   
 opts.learningrate = 0.05
 opts.alpha = 0
 opts.beta = 0
 opts.isgpu = 0
 
--- DO TRAINING
-local rbm = rbmsetup(opts,x_train, y_train)
-rbm = rbmtrain(rbm,x_train,y_train,x_val,y_val)
-saverbm(paths.concat(tempfolder,tempfile),rbm)
-local acc_train = accuracy(rbm,x_train,y_train)
-local acc_val = accuracy(rbm,x_val,y_val)
-local acc_test = accuracy(rbm,x_test,y_test)
-print('Train error      : ', 1-acc_train)
-print('Validation error : ', 1-acc_val)
-print('Test error       : ', 1-acc_test)
-
+-- DO TRAINING  trainAndPrint are in code/rbm.util
+rbm = trainAndPrint(opts,train,val,test,tempfolder,finalfile)
 ```
 
 The results are:
@@ -182,12 +204,20 @@ The results are:
 Which is comparable to the results reported in [7].
 
 
-The results can be improved significantly by enabling dropout:
+The results can be improved significantly by enabling dropout, i.e. setting
+before calling rbmsetup:
 
 ```LUA
-opts.dropout = 0.5
+opts.dropout = 0.5 
 ```
-The effective number of units, opts.dropout * #hidden, vas kept at 500, i.e the number of hidden units was increased 
+Alternatively cd to the examples folder and run:
+
+```
+th test-mnist-discriminative_dropout.lua
+```
+
+The effective number of units, opts.dropout * #hidden, vas kept at 500, i.e 
+the number of hidden units was increased 
 to 1000. All other settings where kept at their previous values.
 
 Using dropout the results are:

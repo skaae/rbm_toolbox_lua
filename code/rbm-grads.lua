@@ -1,6 +1,4 @@
 grads = {}
-ProFi = require('ProFi')
-
 -- Calculate generative weights
 -- tcwx is  tcwx = torch.mm( x,rbm.W:t() ):add( rbm.c:t() )
 function grads.generative(rbm,x,y,tcwx,chx,chy)

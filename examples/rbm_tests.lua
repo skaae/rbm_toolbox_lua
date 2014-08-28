@@ -1,10 +1,10 @@
---require('nn')
-require('torch')
--- load rbm functions
-require('rbm')
-require('dataset-mnist')
-require('rbm-grads')
+codeFolder = '../code/'
 
+require('torch')
+require(codeFolder..'rbm')
+require(codeFolder..'dataset-mnist')
+require(codeFolder..'ProFi')
+require 'paths'
 torch.manualSeed(101)
 torch.setdefaulttensortype('torch.FloatTensor')
 torch.setnumthreads(4)
@@ -14,7 +14,7 @@ torch.setnumthreads(4)
 
 mnist_folder = '../mnist-th7'
 rescale = 1
-x_train, y_train, x_val, y_val, x_test, y_test = mnist.createdatasets(mnist_folder,rescale) 
+train,val,test = mnist.createdatasets(mnist_folder,rescale) 
 
 
 opts = {}
@@ -97,6 +97,7 @@ rbm.currentepoch = 1
 rbm.bottomrbm = 1
 rbm.toprbm = 1
 rbm.samplex = false
+rbm.lrdecay = 0 -- no decay
 
 ---------------------------------------------------------
 -- TRUE VALUES rbm-util
@@ -238,7 +239,12 @@ rbm.beta = 0
 rbm.learningrate = 0.1
 rbm.dropout = 0
 rbm.dropconnect = 0
-rbm = rbmtrain(rbm,x,y)
+
+train ={}
+train.x = x
+train.y_vec = y
+print(train)
+rbm = rbmtrain(rbm,train)
 
 assert(checkequality(rbm.W, torch.add(W ,torch.mul(dw_true,rbm.learningrate)) ,-3),'Check rbm.W failed')
 assert(checkequality(rbm.U, torch.add(U ,torch.mul(du_true,rbm.learningrate)) ,-3),'Check rbm.U failed')

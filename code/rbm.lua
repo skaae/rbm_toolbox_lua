@@ -1,15 +1,29 @@
+require 'paths'
 require('nn')
 require('pl')
 require('torch')
-require('rbm-util')
-require('rbm-regularization')
-require('rbm-grads')
+require(codeFolder.. 'rbm-util')
+require(codeFolder.. 'rbm-regularization')
+require(codeFolder..'rbm-grads')
 --require ('socket')  -- for timing 
 
+datafolder = '../../sigp/dataanalysis/'
+ trainFiles = {'dataanalysis/Eukar1.dat','dataanalysis/Eukar2.dat','dataanalysis/Eukar3.dat'}
+ valFiles = {'dataanalysis/Eukar4.dat'}
 
+function rbmtrain(rbm,train,val,semisup)
+     local x_train,y_train,x_val,y_val,x_semisup
+     x_train = train.data
 
-function rbmtrain(rbm,x_train,y_train,x_val,y_val,x_semisup)
-     
+     y_train = OneOfK(train)
+     if val then
+        x_val   = val.data
+        y_val   = OneOfK(val)
+     end
+     if semisup then
+        x_semisup = semisup.data
+     end
+
 
      -- train RBM
      local x_tr,y_tr,x_semi, total_time, epoch_time,acc_train, best_val_err,patience, best_rbm,best
@@ -59,11 +73,11 @@ function rbmtrain(rbm,x_train,y_train,x_val,y_val,x_semisup)
 
           -- calc. train recon err and train pred error
           rbm.err_recon_train[epoch]    = rbm.cur_err:div(rbm.n_samples)
-          rbm.err_train[epoch]          = 1-accuracy(rbm,x_train,y_train)
+          rbm.err_train[epoch]          = rbm.errorfunction(rbm,x_train,y_train)
           
           if x_val and y_val then
                -- Eearly Stopping
-               rbm.err_val[epoch] = 1-accuracy(rbm,x_val,y_val)
+               rbm.err_val[epoch] = rbm.errorfunction(rbm,x_val,y_val)
                if rbm.err_val[epoch] < best_val_err then
                     best_val_err = rbm.err_val[epoch]
                     patience = rbm.patience
