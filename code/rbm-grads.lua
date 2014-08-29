@@ -17,7 +17,7 @@ function grads.generative(rbm,x,y,tcwx,chx,chy)
      else
           -- use pcd chains as start for negative statistics
           ch_idx = math.floor( (torch.rand(1) * rbm.npcdchains)[1]) +1
-          h0_rnd = sampler( rbmup(rbm, chx[ch_idx]:resize(1,x:size(2)), chy[ch_idx]:resize(1,y:size(2)), drop), rbm.rand)
+          h0_rnd = sampler( rbm.up(rbm, chx[ch_idx]:resize(1,x:size(2)), chy[ch_idx]:resize(1,y:size(2)), drop), rbm.rand)
      end
      
      if rbm.dropout >  0 then
@@ -26,17 +26,17 @@ function grads.generative(rbm,x,y,tcwx,chx,chy)
      
      -- If CDn > 1 update chians n-1 times
      for i = 1, (rbm.cdn - 1) do
-          visx_rnd = sampler( rbmdownx( rbm, h0_rnd ), rbm.rand)   
-          visy_rnd = samplevec( rbmdowny( rbm, h0_rnd), rbm.rand)
-          hid_rnd  = sampler( rbmup(rbm,visx_rnd, visy_rnd, drop), rbm.rand)
+          visx_rnd = sampler( rbm.downx( rbm, h0_rnd ), rbm.rand)   
+          visy_rnd = samplevec( rbm.downy( rbm, h0_rnd), rbm.rand)
+          hid_rnd  = sampler( rbm.up(rbm,visx_rnd, visy_rnd, drop), rbm.rand)
      end
      
                
      -- Down-Up dont sample hiddens, because it introduces noise
-     vkx = rbmdownx(rbm,h0_rnd)                            
+     vkx = rbm.downx(rbm,h0_rnd)                            
      vkx_rnd = sampler(vkx,rbm.rand)                      
-     vky_rnd = samplevec( rbmdowny(rbm,h0_rnd), rbm.rand)                
-     hk = rbmup(rbm,vkx_rnd,vky_rnd,drop)   
+     vky_rnd = samplevec( rbm.downy(rbm,h0_rnd), rbm.rand)                
+     hk = rbm.up(rbm,vkx_rnd,vky_rnd,drop)   
      
      -- If PCD: Update status of selected PCD chains
      if rbm.traintype == 1 then

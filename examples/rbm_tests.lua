@@ -98,6 +98,10 @@ rbm.bottomrbm = 1
 rbm.toprbm = 1
 rbm.samplex = false
 rbm.lrdecay = 0 -- no decay
+rbm.up = rbmup
+rbm.downx = rbmdownx
+rbm.downy = rbmdowny
+rbm.errorfunction = accuracy
 
 ---------------------------------------------------------
 -- TRUE VALUES rbm-util
@@ -241,8 +245,8 @@ rbm.dropout = 0
 rbm.dropconnect = 0
 
 train ={}
-train.x = x
-train.y_vec = y
+train.data = x
+train.labels = torch.Tensor({3}):float()
 print(train)
 rbm = rbmtrain(rbm,train)
 

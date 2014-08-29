@@ -172,9 +172,19 @@ end
 
 
 function rbmsetup(opts,train,semisup)
-     local n_samples = train.data:size(1)
-     local n_visible = train.data:size(2)
-     local n_classes = train.labels:max()
+     local n_visible,n_samples,n_classes
+     n_samples = train.data:size(1)
+     
+     -- switch between 1d and 2d input
+     
+     if train.data:dim() == 2  then -- 1d
+          n_visible = train.data:size(2)
+     else  -- 2d
+          n_visible = train.data:size(2)*train.data:size(3)
+     end  
+
+     
+     n_classes = train.labels:max()
      
 
      local rbm = {}
@@ -240,6 +250,12 @@ function rbmsetup(opts,train,semisup)
      rbm.sparsity        = opts.sparsity or 0
      rbm.patience        = opts.patience or 15
      
+     -- Set up and down functions
+     rbm.up = opts.up or rbmup
+     rbm.downx = opts.downx or rbmdownx
+     rbm.downy = opts.downy or rbmdowny
+     
+
      -- -
      rbm.tempfile        = opts.tempfile or "temp_rbm.asc"
      rbm.isgpu           = opts.isgpu or 0
@@ -359,7 +375,6 @@ end
 
 function OneOfK(data)
   -- creates one of K representaion of numeric labels
-
   local n_classes, n_samples, labels_vec,i
   if data.labels_vec == nil then
     n_classes = data.labels:max()
