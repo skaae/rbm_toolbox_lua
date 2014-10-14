@@ -42,6 +42,20 @@ Run from /example folder
    8) th runrbm.lua -eta 0.05 -alpha 1 -nhidden 1000 -folder test_generative
 
    9) th runrbm.lua -eta 0.05 -alpha 1 -nhidden 2000 -folder test_generative -dropout -0.5
+
+# Using your own data
+You can create our own datasets with the functions in
+code/dataset-from-tensor.lua
+
+```LUA
+require(rbm)
+geometry = {1,100}   -- dimensions of your training data
+nclasses = 3
+classes = {'ClassA','ClassB','ClassC'}
+-- Assuming trainTensor is a nbatches x nfeatrues tensor and trainLabels is a vector
+-- of training labels specified by a number. Assume 3 classes
+ trainData = datatensor.createDataset(trainTensor,oneOfK(nclasses,trainLabels),classes,geometry)
+```
 # TODO
 
  1. DO DROPOUT DISCRIMINATIVE WITH SPARSITY?   
