@@ -24,8 +24,7 @@ The following is supported:
  3. Run example rbms with examples/runrbm.lua 
 
 # Examples
-
-# EXAMPLE RBMS
+Run from /example folder
 
 
   1) th runrbm.lua -eta 0.05 -alpha 0 -nhidden 500 -folder test_discriminative
