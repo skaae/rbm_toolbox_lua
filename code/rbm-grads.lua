@@ -1,69 +1,139 @@
 grads = {}
 -- Calculate generative weights
 -- tcwx is  tcwx = torch.mm( x,rbm.W:t() ):add( rbm.c:t() )
-function grads.generative(rbm,x,y,tcwx,chx,chy)
-     local visx_rnd, visy_rnd, h0, h0_rnd,ch_idx,drop, vkx, vkx_rnd, vky_rnd,hk
-     h0 = sigm( torch.add(tcwx, torch.mm(y,rbm.U:t() ) ) ) --   UP
-     
+function grads.generativestatistics(rbm,x,y,tcwx)
+     local visx, visy, h0,ch_idx,drop, vkx, vkx_rnd, vky_rnd,hk,vky
+     local stat = {}
+     if rbm.toprbm then
+        h0 = sigm( torch.add(tcwx, torch.mm(y,rbm.U:t() ) ) ) --   UP
+     else
+         h0 = sigm( tcwx ) 
+     end
+
      if rbm.dropout >  0 then
           h0:cmul(rbm.dropout_mask)
           drop = 1
      end
      
      -- Switch between CD and PCD
-     if rbm.traintype == 0 then -- CD
+     if rbm.traintype == 'CD' then -- CD
           -- Use training data as start for negative statistics
-          h0_rnd = sampler(h0,rbm.rand)   -- use training data as start
-     else
+          hid = rbm.hidsampler(h0,rbm.rand)   -- sample the hidden derived from training state
+     elseif rbm.traintype == 'PCD' then
           -- use pcd chains as start for negative statistics
           ch_idx = math.floor( (torch.rand(1) * rbm.npcdchains)[1]) +1
-          h0_rnd = sampler( rbm.up(rbm, chx[ch_idx]:resize(1,x:size(2)), chy[ch_idx]:resize(1,y:size(2)), drop), rbm.rand)
+
+          local chx =  rbm.chx[ch_idx]:resize(1,x:size(2))
+          local chy
+          if rbm.toprbm then
+            chy = rbm.chy[ch_idx]:resize(1,y:size(2))
+          else
+            chy = {}
+          end
+          hid = rbm.hidsampler( rbm.up(rbm, chx, chy, drop), rbm.rand)
+     elseif rbm.traintype == 'meanfield' then
+           hid = rbm.hidsampler(h0,rbm.rand) 
      end
      
-     if rbm.dropout >  0 then
-          h0_rnd:cmul(rbm.dropout_mask)   -- Apply dropout on p(h|v)
-     end
+
      
      -- If CDn > 1 update chians n-1 times
      for i = 1, (rbm.cdn - 1) do
-          visx_rnd = sampler( rbm.downx( rbm, h0_rnd ), rbm.rand)   
-          visy_rnd = samplevec( rbm.downy( rbm, h0_rnd), rbm.rand)
-          hid_rnd  = sampler( rbm.up(rbm,visx_rnd, visy_rnd, drop), rbm.rand)
+          visx = rbm.downx( rbm, hid )
+          if rbm.traintype ~= 'meanfield' then
+            visx = rbm.visxsampler( visx, rbm.rand)   
+          end
+
+          
+          if rbm.toprbm then
+            visy = rbm.downy( rbm, hid)
+            if rbm.traintype ~= 'meanfield' then
+                visy = samplevec( visy, rbm.rand)
+            end
+          else
+            visy = {}
+          end
+
+          hid = rbm.up(rbm,visx, visy, drop)
+          if rbm.traintype ~= 'meanfield' then
+            hid  = rbm.hidsampler( hid, rbm.rand)
+          end
+
+
      end
      
                
-     -- Down-Up dont sample hiddens, because it introduces noise
-     vkx = rbm.downx(rbm,h0_rnd)                            
-     vkx_rnd = sampler(vkx,rbm.rand)                      
-     vky_rnd = samplevec( rbm.downy(rbm,h0_rnd), rbm.rand)                
-     hk = rbm.up(rbm,vkx_rnd,vky_rnd,drop)   
+     -- Down-Up dont sample last hiddens, because it introduces noise
+     -- for meanfield we do not sample 
+     vkx = rbm.downx(rbm,hid) 
+     stat.vkx_unsampled = vkx                           
+     if rbm.traintype ~= 'meanfield' then
+        vkx = rbm.visxsampler(vkx,rbm.rand)
+     end
+     if rbm.toprbm then
+        vky =   rbm.downy(rbm,hid)                    
+        if rbm.traintype ~= 'meanfield' then
+            vky = samplevec( vky, rbm.rand) 
+        end 
+     else
+        vky = {}
+     end              
+     hk = rbm.up(rbm,vkx,vky,drop)   
      
      -- If PCD: Update status of selected PCD chains
-     if rbm.traintype == 1 then
-          chx[{ ch_idx,{} }] = vkx_rnd
-          chy[{ ch_idx,{} }] = vky_rnd
+     if rbm.traintype == 'PCD' then
+          rbm.chx[{ ch_idx,{} }] = vkx
+        
+          if rbm.toprbm then
+            rbm.chy[{ ch_idx,{} }] = vky
+          end
      end
 
-     -- Calculate generative gradients
-     local dW =   torch.mm(h0:t(),x) :add(-torch.mm(hk:t(),vkx_rnd)) 
-     local dU =   torch.mm(h0:t(),y):add(-torch.mm(hk:t(),vky_rnd)) 
-     local db =   torch.add(x,  -vkx_rnd):t()  
-     local dc =   torch.add(h0, -hk ):t() 
-     local dd =   torch.add(y,  -vky_rnd):t() 
-     return dW, dU, db, dc ,dd, vkx
+     
+     stat.h0 = h0
+     --stat.h0_rnd = h0_rnd
+     stat.hk = hk
+     stat.vkx = vkx
+     --stat.vkx_rnd = vkx_rnd
+     
+     if rbm.toprbm then
+        stat.vky = vky
+        --stat.vky_rnd = vky_rnd
+     end
+     return stat
+end
+
+function grads.generativegrads(rbm,x,y,stat)
+     assert(isRowVec(x))
+     local grads = {}
+     -- Calculate generative gradients  
+     grads.dW = torch.mm(stat.h0:t(),x) :add(-torch.mm(stat.hk:t(),stat.vkx)) 
+     grads.db = torch.add(x,  -stat.vkx):t()  
+     grads.dc = torch.add(stat.h0, -stat.hk ):t() 
+     
+     if rbm.toprbm then
+         assert(isRowVec(y))
+        grads.dU = torch.mm(stat.h0:t(),y):add(-torch.mm(stat.hk:t(),stat.vky)) 
+        grads.dd = torch.add(y,  -stat.vky):t() 
+     end
+     return grads
+
 end
 
 -- Calculate discriminative weights
 -- tcwx is  tcwx = torch.mm( x,rbm.W:t() ):add( rbm.c:t() )
-function grads.discriminative(rbm,x,y,tcwx)
+function grads.discriminativegrads(rbm,x,y,tcwx)
+     assert(isRowVec(x))
+     assert(isRowVec(y))
+     --print("kakkakak")
      local p_y_given_x, F, mask_expanded,F_sigm, F_sigm_prob,F_sigm_prob_sum,F_sigm_dy
      local dW,dU,dc,dd
      
      -- Switch between dropout version and non dropout version of pygivenx
      if rbm.dropout > 0 then
-          p_y_given_x, F,mask_expanded = grads.pygivenxdropout(rbm,x,tcwx)
+          p_y_given_x, F,mask_expanded = rbm.pygivenxdropout(rbm,x,tcwx)
      else  
-          p_y_given_x, F = grads.pygivenx(rbm,x,tcwx)
+          p_y_given_x, F = rbm.pygivenx(rbm,x,tcwx)
      end   
 
      F_sigm = sigm(F)
@@ -78,93 +148,57 @@ function grads.discriminative(rbm,x,y,tcwx)
      F_sigm_dy = torch.mm(F_sigm, y:t())
 
 
-     dW =  torch.add( torch.mm(F_sigm_dy, x), -torch.mm(F_sigm_prob_sum,x) )
-     dU =  torch.add( -F_sigm_prob, torch.cmul(F_sigm, torch.mm( torch.ones(F_sigm_prob:size(1),1),y ) ) )
+     dW = torch.add( torch.mm(F_sigm_dy, x), -torch.mm(F_sigm_prob_sum,x) )
+     dU = torch.add( -F_sigm_prob, torch.cmul(F_sigm, torch.mm( torch.ones(F_sigm_prob:size(1),1),y ) ) )
      dc = torch.add(-F_sigm_prob_sum, F_sigm_dy)
      dd = torch.add(y, -p_y_given_x):t()
 
-
-     return dW, dU, dc, dd,p_y_given_x
+     local grads = {}
+     grads.dW = dW
+     grads.dU = dU
+     grads.dc = dc
+     grads.dd = dd
+     return grads,p_y_given_x
 
 end
 
 
 function grads.pygivenx(rbm,x,tcwx_pre_calc)
-     local tcwx,F,pyx
-     tcwx_pre_calc = tcwx_pre_calc or torch.mm( x,rbm.W:t() ):add( rbm.c:t() )
-     F = torch.add( rbm.U, torch.mm(tcwx_pre_calc:t(), rbm.one_by_classes) )
-     pyx = softplus(F):sum(1)        -- p(y|x) logprob
-     pyx:add(-torch.max(pyx))       -- subtract max for numerical stability
-     pyx:exp()                      -- convert to real domain
-     pyx:mul( ( 1/pyx:sum() ))      -- normalize probabilities
-     return pyx,F
+    assert(isRowVec(x))
+
+    local tcwx,F,pyx
+    tcwx_pre_calc = tcwx_pre_calc or torch.mm( x,rbm.W:t() ):add( rbm.c:t() )
+    assert(isRowVec(tcwx_pre_calc))  -- 1xn_hidden
+
+    F = torch.add( rbm.U, torch.mm(tcwx_pre_calc:t(), rbm.one_by_classes) )
+    pyx = softplus(F):sum(1)        -- p(y|x) logprob
+    pyx:add(-torch.max(pyx))       -- subtract max for numerical stability
+    pyx:exp()                      -- convert to real domain
+    pyx:mul( ( 1/pyx:sum() ))      -- normalize probabilities
+    
+    assert(pyx:size(1) == 1 and pyx:size(2) == rbm.n_classes)
+    return pyx,F
 end
 
 function grads.pygivenxdropout(rbm,x,tcwx_pre_calc)
-     -- Dropout version of pygivenx
-     local tcwx,F,pyx, mask_expanded
-     mask_expanded = torch.mm(rbm.dropout_mask:t(), rbm.one_by_classes)
-     tcwx_pre_calc = tcwx_pre_calc or torch.mm( x,rbm.W:t() ):add( rbm.c:t() )
-  
-     F   = torch.add( rbm.U, torch.mm(tcwx_pre_calc:t(), rbm.one_by_classes) )
-     F:cmul(mask_expanded)          -- Apply dropout mask
-     
-     F_softplus = softplus(F)
-     F_softplus:cmul(mask_expanded) -- Apply dropout mask
-     
-     pyx = F_softplus:sum(1)        -- p(y|x) logprob
-     pyx:add(-torch.max(pyx))       -- subtract max for numerical stability
-     pyx:exp()                      -- convert to real domain
-     pyx:mul( ( 1/pyx:sum() ))      -- normalize probabilities
-     return pyx,F,mask_expanded
-end
+    -- Dropout version of pygivenx
+    assert(isRowVec(x))
+    local tcwx,F,F_softplus,pyx, mask_expanded
+    mask_expanded = torch.mm(rbm.dropout_mask:t(), rbm.one_by_classes)
+    tcwx_pre_calc = tcwx_pre_calc or torch.mm( x,rbm.W:t() ):add( rbm.c:t() )
+    assert(isRowVec(tcwx_pre_calc))  -- 1xn_hidden
 
+    F   = torch.add( rbm.U, torch.mm(tcwx_pre_calc:t(), rbm.one_by_classes) )
+    F:cmul(mask_expanded)          -- Apply dropout mask
 
-function grads.calculategrads(rbm,x_tr,y_tr,x_semi)
-      local dW_gen, dU_gen, db_gen, dc_gen, dd_gen, vkx, tcwx 
-      local dW_dis, dU_dis, dc_dis, dd_dis, p_y_given_x
-      local dW_semi, dU_semi,db_semi, dc_semi, dd_semi, y_semi
-      
-      -- reset accumulators
-      rbm.dW:fill(0)
-      rbm.dU:fill(0)
-      rbm.db:fill(0)
-      rbm.dc:fill(0)
-      rbm.dd:fill(0)
-      
-     tcwx = torch.mm( x_tr,rbm.W:t() ):add( rbm.c:t() )   -- precalc tcwx
-      -- GENERATIVE GRADS
-      if rbm.alpha > 0 then
-        dW_gen, dU_gen, db_gen, dc_gen, dd_gen, vkx  = grads.generative(rbm,x_tr,y_tr,tcwx,rbm.chx,rbm.chy)
-        rbm.dW:add( dW_gen:mul( rbm.alpha ))
-        rbm.dU:add( dU_gen:mul( rbm.alpha ))
-        rbm.db:add( db_gen:mul( rbm.alpha ))
-        rbm.dc:add( dc_gen:mul( rbm.alpha ))
-        rbm.dd:add( dd_gen:mul( rbm.alpha ))
-        rbm.cur_err:add(   torch.sum(torch.add(x_tr,-vkx):pow(2)) )  
-      end
-     
-      -- DISCRIMINATIVE GRADS
-      if rbm.alpha < 1 then
+    F_softplus = softplus(F)
+    F_softplus:cmul(mask_expanded) -- Apply dropout mask
 
-        dW_dis, dU_dis, dc_dis, dd_dis, p_y_given_x  = grads.discriminative(rbm,x_tr,y_tr,tcwx)
-        rbm.dW:add( dW_dis:mul( 1-rbm.alpha ))
-        rbm.dU:add( dU_dis:mul( 1-rbm.alpha ))
-        rbm.dc:add( dc_dis:mul( 1-rbm.alpha ))
-        rbm.dd:add( dd_dis:mul( 1-rbm.alpha ))
+    pyx = F_softplus:sum(1)        -- p(y|x) logprob
+    pyx:add(-torch.max(pyx))       -- subtract max for numerical stability
+    pyx:exp()                      -- convert to real domain
+    pyx:mul( ( 1/pyx:sum() ))      -- normalize probabilities
 
-      end
-
-      
-      -- SEMISUPERVISED GRADS
-      if rbm.beta > 0 then
-               grads.p_y_given_x = p_y_given_x or grads.pygivenx(rbm,x_tr,tcwx)
-               y_semi = samplevec(p_y_given_x,rbm.rand):resize(1,rbm.n_classes)
-               dW_semi, dU_semi,db_semi, dc_semi, dd_semi = grads.generative(rbm,x_semi,y_semi,tcwx,rbm.chx_semisup,rbm.chy_semisup)
-               rbm.dW:add( dW_semi:mul( rbm.beta ))
-               rbm.dU:add( dU_semi:mul( rbm.beta ))
-               rbm.db:add( db_semi:mul( rbm.beta ))
-               rbm.dc:add( dc_semi:mul( rbm.beta ))
-               rbm.dd:add( dd_semi:mul( rbm.beta ))      
-      end
+    assert(pyx:size(1) == 1 and pyx:size(2) == rbm.n_classes)
+    return pyx,F,mask_expanded
 end

@@ -1,0 +1,28 @@
+# EXAMPLE RBMS
+
+# DISCRIMINATIVE RBM
+th runrbm.lua -eta 0.05 -alpha 0 -nhidden 500 -folder test_discriminative
+
+# DISCRIMINATIVE DROPOUT RBM
+th runrbm.lua -eta 0.05 -alpha 0 -nhidden 500 -folder test_discriminative_dropout -dropout 0.5
+
+# GENERATIVE PCD RBM
+th runrb,.lua -eta 0.05 -alpha 1 -nhidden 500 -folder test_generative_pcd -traintype PCD
+
+# HYBRID RBM
+th runrbm.lua -eta 0.05 -alpha 0.01 -nhidden 1500 -folder test_hybrid
+
+# HYBRID DROPOUT RBM
+th runrbm.lua -eta 0.05 -alpha 0.01 -nhidden 1500 -folder test_hybrid_dropout -dropout 0.5
+
+# HYBRID SPARSITY RBM
+th runrbm.lua -eta 0.05 -alpha 0.01 -nhidden 3000 -folder test_hybrid_sparsity -sparsity 0.0001
+
+# HYBRID SPARSITY DROPOUT RBM
+th runrbm.lua -eta 0.05 -alpha 0.01 -nhidden 3000 -folder test_hybrid_sparsity_dropout -sparsity 0.0001 -dropout 0.5
+
+# GENERATIVE RBM
+th runrbm.lua -eta 0.05 -alpha 1 -nhidden 1000 -folder test_generative
+
+# GENERATIVE DROPOUT RBM
+th runrbm.lua -eta 0.05 -alpha 1 -nhidden 2000 -folder test_generative -dropout -0.5

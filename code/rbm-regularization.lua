@@ -9,12 +9,18 @@ function regularization.applyregularization(rbm)
           
           if rbm.L1 > 0 then
                rbm.dW:add( -torch.sign(rbm.dW):mul(rbm.L1)  )
-               rbm.dU:add( -torch.sign(rbm.dU):mul(rbm.L1)  )              
+
+               if rbm.toprbm then
+                  rbm.dU:add( -torch.sign(rbm.dU):mul(rbm.L1)  )       
+               end       
           end
           
           if rbm.L2 > 0 then
                rbm.dW:add( -torch.mul(rbm.dW,rbm.L2 ) )
-               rbm.dU:add( -torch.mul(rbm.dU,rbm.L2 ) )
+
+               if rbm.toprbm then
+                  rbm.dU:add( -torch.mul(rbm.dU,rbm.L2 ) )
+               end
           end
 end
 
@@ -22,25 +28,6 @@ end
 function regularization.dropout(rbm)
      -- Create dropout mask for hidden units
      if rbm.dropout > 0 then
-        if rbm.dropouttype == "bernoulli" then
             rbm.dropout_mask = torch.lt( torch.rand(1,rbm.n_hidden),rbm.dropout ):typeAs(rbm.W)
-        elseif rbm.dropouttype == "gauss" then
-             rbm.dropout_mask = torch.randn(1,rbm.n_hidden):add(1):typeAs(rbm.W)
-        else
-            assert(false)
-        end
      end     
-end
-
-function regularization.mask2sub(x)
-     local sub
-     sub = torch.zeros(x:sum())
-     j = 1
-     for i = 1, x:size(1) do
-          if x[i] == 1 then
-               sub[j] = i
-               j = j+1
-          end
-     end
-     return(sub)
 end
