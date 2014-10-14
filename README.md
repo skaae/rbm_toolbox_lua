@@ -14,275 +14,36 @@ The following is supported:
  * PCD (persistent contrastive divergence) [6]
  * RBM sampling functions (pictures / movies) (TODO)
  * RBM Classification support [2,7]
- * Regularization: L1, L2, sparsity, early-stopping, dropout [1],dropconnect[10], momentum [3] 
+ * Regularization: L1, L2, sparsity, early-stopping, dropout [1], momentum [3] 
 
 # Installation
 
  1. Install torch7: Follow [these](https://github.com/torch/torch7/wiki/Cheatsheet#installing-and-running-torch) instructions
  2. download this repository: `git clone https://github.com/skaae/rbm_toolbox_lua.git`
- 3. Execute your scripts from the repository folder
-
-# Settings
-
-## Setting up the RBM and training
-A RBM with standard settings can be trained and with:
-
-```LUA
-codeFolder = '/code/'     -- Relative path to code
-require(codeFolder..'rbm')
-require(codeFolder..'dataset-mnist')
-
-opts = {}
-opts.n_hidden = 100
-
-
-mnist_folder = '../mnist-th7'
-tar_folder   = 'data'  
-rescale = 1
-train, val, test = mnist.createdatasets(mnist_folder,rescale,tar_folder) 
-rbm = rbmsetup(opts,train)
-rbm = rbmtrain(rbm,train,val)
-saverbm('rbm.asc',rbm)
-```
-
-You may resume training of an already trained RBM. E.g if you trained a RBM for 10 epochs but want to train it for 
-10 more epochs, then:
-
-```LUA
-rbm = loadrbm('rbm.asc')
-rbm.numepochs = 20
-rbm = rbmtrain(rbm,train,val) -- resumes training from current epoch
-```
-
-Settings are controlled with the opts table. 
-Passing in an empty opts table to rbmsetup will use the default value. 
-Valid fields and default values can be seen by:
-
-```LUA
-print(rbmsetup(opts,train))
-```
-
-## Passing in data
-Training, valdiation and semisupervised data are arguments to `rbmtrain`:
-
-```LUA
-rbmtrain(rbm,train,val,semisup)
-```
-
-validation data and semisupervised data may be ommitted.
-For all data must be supplied as a table with fields 'data' and 'labels'.
-
-For mnist the training data looks like:
-```SHELL
-{
-  data : FloatTensor - size: 50000x784
-  labels : LongTensor - size: 50000
-}
-```
-
-## Training objective
-
-The training behavior is controlled with `opts.alpha`
-
- * opts.alpha =     0 : Discriminative training
- * opts.alpha =     1 : Generative training
- * 0 < opts.alpha < 1 : Hybrid training
-
- Amount of semisupervised training is controlled with `opts.beta`
-
-## Error measure
-Error measures can be specified with `opts.errorfunction`. The default is accuracy.
-The error function takes 3 inputs: `errorfunction(rbm,x_val,y_val)`.
-Note that the y_passed to the error function is 1-of-K encoded. 
-
-The default accuracy error function is shown below
-```LUA
-function accuracy(rbm,x,y_true)
-     local pred,n_correct,acc,_
-     
-     -- Convert labels given as numbers to one of K
-     if y_true:size(2) ~= 1 then -- try max
-          _,y_true = torch.max(y_true,2)
-          y_true = y_true:typeAs(x)
-     end
-     
-     pred = predict(rbm,x)
-     n_correct = torch.eq(y_true,pred):sum()
-     acc = n_correct / x:size(1)
-     return 1-acc
-end
-```
-The `predict` function returns RBM predictions, encoded as a class number.
-
-## Regularization
-
- * `opts.L1`: specify the regularization weight
- * `opts.L2`: specify the regularization weight
- * `opts.sparsity`: implemented as in [7]. Specify the sparsity being subtracted from biases after each weight update.
- * `opts.dropout`: dropout on hidden units. Specify the 1-probability of being dropped. see [1]
- * `opts.dropconnect`: dropout on connections, specify 1-probability of connection being zeroed, see [10]
- * Early-stopping: Always enabled. Set the patience with opts.patience. To disable
- early stopping set patience to infinity.
-
-### DropOut
-Dropout is implemented by clamping random hidden units to zero during training. The probability of each hidden units 
-being clamped is `1-opts.dropout`, i.e `opts.dropout = 0` will clamp all hidden units to zero and `opts.dropout =1` will clamp 
-no units to zero. `opts.dropout = 0` will disable dropout (It does not make sense to clamp all units anyway).
-
-### DropConnect
-Drop connect clamps Weights and Biases of the hidden layer to zero with probability `1-opts.dropconnect`.
-DropConnect is applied by randomly clamping weights of *W*, *U* and *c* to zero. DropConnect is slower than 
-dropout because we need to clone the weight matrices before each weight update. 
+ 4. To run the examples install wget with homebrew
+ 3. Run example rbms with examples/runrbm.lua 
 
 # Examples
 
-Reproducing results from [7], specifically the results from the table reproduced below:
-
-| Model  |Objective                                         | Errror (%)    | Example  |
-|---     |---                                               |---            |---       |
-|ClassRBM| Discriminative(lr = 0.05, H = 500)               |   1.81        |    1     |
-|        | Generative(lr = 0.005, H = 6000)                 |   3.39        |    2     |
-|        | Hybrid(alpha = 0.01, lr = 0.05, H = 1500)        |   1.28        |    3     |
-|        | Sparse Hybrid( idem + H = 3000, sparsity=10^-4)  |   1.16        |    4     |
-lr = learning rate
-H = hidden layer size
-
-## Example 1 - Discriminative Training
-
-Trains a discriminative RBM with 500 hidden units. The toolbox supports discriminative, generative,
-hybrid training as described in [7].
-
-```LUA
-codeFolder = '../code/'
-
-require('torch')
-require(codeFolder..'rbm')
-require(codeFolder..'dataset-mnist')
-require(codeFolder..'ProFi')
-require 'paths'
-
-torch.manualSeed(101)
-torch.setdefaulttensortype('torch.FloatTensor')
-
--- LOAD DATA
-mnist_folder = '../../mnist-th7'
-rescale = 1
-train, val, test = mnist.createdatasets(mnist_folder,rescale) 
-   
-num_threads = 1
-torch.setnumthreads(num_threads)
-if torch.getnumthreads() < num_threads then
-     print("Setting number of threads had no effect. Maybe install with gcc 4.9 for openMP?")
-end
-
--- SETUP RBM
-local opts = {}
-local tempfile = 'discriminative_temp.asc'
-local tempfolder = '../rbmtemp'
-os.execute('mkdir -p ' .. tempfolder)              -- create tempfolder if it does not exist
-local finalfile = 'discriminative_final.asc'             -- Name of final RBM file
-os.execute('mkdir -p ' .. tempfolder)              -- Create save folder if it does not exists
-opts.tempfile = paths.concat(tempfolder,tempfile)  -- current best is saved to this folder
-opts.traintype = 'CD'
-opts.cdn = 1
-opts.n_hidden     = 500
-opts.numepochs    = 1000
-opts.patience     = 15                             -- early stopping is always enabled, to disble set this to inf = 1/0   
-opts.learningrate = 0.05
-opts.alpha = 0
-opts.beta = 0
-opts.isgpu = 0
-
--- DO TRAINING  trainAndPrint are in code/rbm.util
-rbm = trainAndPrint(opts,train,val,test,tempfolder,finalfile)
-```
-
-The results are:
- * Train error      : 	2.000000000002e-05	
- * Validation error : 	0.0183	
- * Test error       : 	0.0188	
-Which is comparable to the results reported in [7].
+# EXAMPLE RBMS
 
 
-The results can be improved significantly by enabling dropout, i.e. setting
-before calling rbmsetup:
+  1) th runrbm.lua -eta 0.05 -alpha 0 -nhidden 500 -folder test_discriminative
+  
+  2) th runrbm.lua -eta 0.05 -alpha 0 -nhidden 500 -folder test_discriminative_dropout -dropout 0.5
+  
+   3) th runrb,.lua -eta 0.05 -alpha 1 -nhidden 500 -folder test_generative_pcd -traintype PCD
+   4) th runrbm.lua -eta 0.05 -alpha 0.01 -nhidden 1500 -folder test_hybrid
 
-```LUA
-opts.dropout = 0.5 
-```
-Alternatively cd to the examples folder and run:
+   5) th runrbm.lua -eta 0.05 -alpha 0.01 -nhidden 1500 -folder test_hybrid_dropout -dropout 0.5
 
-```
-th test-mnist-discriminative_dropout.lua
-```
+   6) th runrbm.lua -eta 0.05 -alpha 0.01 -nhidden 3000 -folder test_hybrid_sparsity -sparsity 0.0001
 
-The effective number of units, opts.dropout * #hidden, vas kept at 500, i.e 
-the number of hidden units was increased 
-to 1000. All other settings where kept at their previous values.
+   7) th runrbm.lua -eta 0.05 -alpha 0.01 -nhidden 3000 -folder test_hybrid_sparsity_dropout -sparsity 0.0001 -dropout 0.5
 
-Using dropout the results are:
-Train error      : 	2.000000000002e-05	
-Validation error : 	0.0135	
-Test error       : 	0.0141
+   8) th runrbm.lua -eta 0.05 -alpha 1 -nhidden 1000 -folder test_generative
 
-These results are significantly better than non-dropout and similar to the performance of an SVM.
-
-The figures below show differeces between training without dropout (left) and with dropout (right).
-First the validation error and training error is plotted. Training with dropout requires many more epochs before convergence.
-The second figure vizualizes the learned filters. 
-
-<img src="/uploads/ex1_trainval.png" height="400" width="400">    
-
-
-<img src="/uploads/ex1_weights.png" height="700" width="550">   
-
-
-The graphs are created in MATLAB. I created a simple script to pass RBM's from Torch to MATLAB
-
-In Torch do:
-
-```LUA
--- Load RBM or use one you have trained
-rbm = loadrbm('discriminative_final.asc')
-
--- Save the RBM to CSV files.
-writerbmtocsv(rbm)  -- optinally specify save folder as 2. arg
-```
-
-Launch MATLAB browse to the folder where the CSV's are saved, then 
-
-```MATLAB
-figure;
-rbm = loadrbm();  % optonally spcify another path to CSV's
-plotx = 1:numel(rbm.err_val);
-plot(plotx,rbm.err_val,plotx,rbm.err_train);
-
-prettyfig(gca,title('Discriminative training'),...
-          xlabel('Epochs'),ylabel('Error(%)'),legend({'Validation','Training'}))
-grid on
-
-figure;
-[~,idx] = sort( sum(rbm.W.^2,2), 1, 'descend');  % sort by norm
-idx = idx(1:100);
-visualize(rbm.W(idx,:)')
-axis off;
-```
-
-
-# Example Discriminative + Dropout + sparsity
-
-file test-mnist-discriminative_dropout_sparsity.txt
-Number of hidden             :  1000		
-Patience                     :  15	
-Sparisty                     :  0.000100		
-DropOut                      :  0.500000	
-
-
-Train error      : 	0.00044	
-Validation error : 	0.0158	
-Test error       : 	0.0189
-
-
+   9) th runrbm.lua -eta 0.05 -alpha 1 -nhidden 2000 -folder test_generative -dropout -0.5
 # TODO
 
  1. DO DROPOUT DISCRIMINATIVE WITH SPARSITY?   
