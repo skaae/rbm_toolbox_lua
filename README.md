@@ -61,7 +61,14 @@ trainLabels = torch.Tensor({1,2,3,1,2})
 classes = {'ClassA','ClassB','ClassC'}
 -- Assuming trainTensor is a nbatches x nfeatrues tensor and trainLabels is a vector
 -- of training labels specified by a number. Assume 3 classes
- trainData = datatensor.createDataset(trainTensor,oneOfK(nclasses,trainLabels),classes,geometry)
+ trainData = datatensor.createDataset(trainTensor,
+                                      oneOfK(nclasses,trainLabels),
+                                      classes,
+                                      geometry)
+print(trainData:next())
+print(trainData[2])
+print(trainData:classnames())
+
 ```
 # TODO
 
