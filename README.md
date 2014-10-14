@@ -9,10 +9,9 @@ The following is supported:
     * Generative training objective [2,7]
     * Discriminative training objective [2,7]
     * Hybrid training objective [2,7]
-    * Semi-supervised learning [2,7]
+    * Semi-supervised learning [2,7]   untested
  * CD - k (contrastive divergence k) [5]
  * PCD (persistent contrastive divergence) [6]
- * RBM sampling functions (pictures / movies) (TODO)
  * RBM Classification support [2,7]
  * Regularization: L1, L2, sparsity, early-stopping, dropout [1], momentum [3] 
 

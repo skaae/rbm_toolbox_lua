@@ -1,6 +1,3 @@
-
-examples/test-sigp-rbm.lua
-mnist-th7/test.th7
-mnist-th7/train.th7
-
-examples/testnn.lua
+sigp-data/
+20news-data/
+examples/runRBMmy.lua
