@@ -56,8 +56,8 @@ require 'paths'
 geometry = {1,100}   -- dimensions of your training data
 nclasses = 3
 nSamples = 5
-trainTensor = torch.rand(nSamples,100)
-trainLabels = torch.rand({1,2,3,1,2})
+trainTensor = torch.rand(nSamples,geometry[1],geometry[2])
+trainLabels = torch.Tensor({1,2,3,1,2})
 classes = {'ClassA','ClassB','ClassC'}
 -- Assuming trainTensor is a nbatches x nfeatrues tensor and trainLabels is a vector
 -- of training labels specified by a number. Assume 3 classes
