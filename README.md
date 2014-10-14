@@ -48,8 +48,11 @@ You can create our own datasets with the functions in
 code/dataset-from-tensor.lua
 
 ```LUA
-require(rbm)
-require(code/dataset-from-tensor)
+codeFolder = '../code/'
+require('torch')
+require(codeFolder..'rbm')
+require(codeFolder..'dataset-from-tensor')
+require 'paths'
 geometry = {1,100}   -- dimensions of your training data
 nclasses = 3
 nSamples = 5
