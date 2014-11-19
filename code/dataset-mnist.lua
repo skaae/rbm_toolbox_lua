@@ -3,7 +3,7 @@ require 'paths'
 
 mnist = {}
 
-mnist.path_remote = 'http://data.neuflow.org/data/mnist-th7.tgz'
+mnist.path_remote = 'https://www.dropbox.com/s/1l9q60brgnssjde/mnist_lua.tar.gz?dl=0'
 mnist.path_dataset = 'mnist-th7'
 mnist.path_trainset = paths.concat(mnist.path_dataset, 'train.th7')
 mnist.path_testset = paths.concat(mnist.path_dataset, 'test.th7')
