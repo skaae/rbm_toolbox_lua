@@ -1,3 +1,8 @@
+-- An example which uses the create_weight_image to display the filter for the
+-- rbm.
+-- The RBM is trained on a small data set (for 1 epoch) after which the image
+-- is generated.
+
 codeFolder = '../code/'
 
 require('torch')
