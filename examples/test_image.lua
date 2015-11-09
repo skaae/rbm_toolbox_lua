@@ -46,7 +46,7 @@ testData:toProbability()
 -- Create the rbm
 rbm = rbmsetup(opts, trainData)
 
-rbm.numepochs = 2
+-- Train the rbm
 rbm = rbmtrain(rbm,trainData,valData)
 
 -- Output the rbm weights
