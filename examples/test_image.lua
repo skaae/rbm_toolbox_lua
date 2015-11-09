@@ -16,6 +16,8 @@ require('paths')
 if not opts then
 	cmd = torch.CmdLine()
 	cmd:option('-n_hidden', 500, 'number of hidden units')
+	cmd:option('-datasetsize', 'full', 'small|full size of dataset')
+	cmd:option('-image_name', 'demo.png', 'the filename with which the generated image should be saved')
 	opts = cmd:parse(arg or {})
 end
 
@@ -26,10 +28,15 @@ torch.setdefaulttensortype('torch.FloatTensor')
 geometry = {32,32}
 
 -- Only load the small dataset to start with.
-dataSize = 2000
-trainData = mnist.loadTrainSet(dataSize, geometry,'none')
-testData = mnist.loadTestSet(dataSize/2, geometry)
-valData = mnist.loadTestSet(dataSize/2, geometry)
+if opts.datasetsize == 'full' then
+    trainData,valData = mnist.loadTrainAndValSet(geometry,'none')
+    testData = mnist.loadTestSet(nbTestingPatches, geometry)
+else
+	dataSize = 2000
+	trainData = mnist.loadTrainSet(dataSize, geometry,'none')
+	testData = mnist.loadTestSet(dataSize/2, geometry)
+	valData = mnist.loadTestSet(dataSize/2, geometry)
+end
 
 -- The datasets need to be converted probabilities
 trainData:toProbability()
@@ -39,8 +46,8 @@ testData:toProbability()
 -- Create the rbm
 rbm = rbmsetup(opts, trainData)
 
--- rbm.numepochs = 1
+rbm.numepochs = 2
 rbm = rbmtrain(rbm,trainData,valData)
 
 -- Output the rbm weights
-create_weight_image(rbm, geometry, 'demo.png')
+create_weight_image(rbm, geometry, opts.image_name)
