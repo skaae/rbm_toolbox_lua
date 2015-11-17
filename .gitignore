@@ -4,3 +4,9 @@ examples/runRBMmy.lua
 code/dataset-sigp.lua
 
 code/dataset-sigp.lua
+
+# Ignore the saved RBM files by default.
+*.asc
+
+# Ignore the mnist-th7 dataset.
+examples/mnist-th7/
