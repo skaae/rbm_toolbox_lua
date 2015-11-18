@@ -8,11 +8,23 @@ mnist.path_dataset = 'mnist-th7'
 mnist.path_trainset = paths.concat(mnist.path_dataset, 'train.th7')
 mnist.path_testset = paths.concat(mnist.path_dataset, 'test.th7')
 
+function get_download_executable()
+   -- check to see if wget is available, and use curl if this is not the case.
+   local exe = 'wget '
+   local wget_found = os.execute('wget --help')
+   if not wget_found then
+      exe = 'curl -OL '
+   end
+
+   return exe
+end
+
 function mnist.download()
    if not paths.filep(mnist.path_trainset) or not paths.filep(mnist.path_testset) then
       local remote = mnist.path_remote
       local tar = paths.basename(remote)
-      os.execute('wget ' .. remote .. '; ' .. 'tar xvf ' .. tar .. '; rm ' .. tar)
+      local ulr_getter = get_download_executable()
+      os.execute(ulr_getter .. remote .. '; ' .. 'tar xvf ' .. tar .. '; rm ' .. tar)
    end
 end
 
@@ -119,7 +131,7 @@ end
 function mnist.loadConvDataset(fileName, maxLoad, geometry,trainOrVal,boost,name)
    local dataset = mnist.loadFlatDataset(fileName, maxLoad,trainOrVal)
    local cdataset = {}
-   
+
    function cdataset:normalize(m,s)
       return dataset:normalize(m,s)
    end
@@ -147,12 +159,12 @@ function mnist.loadConvDataset(fileName, maxLoad, geometry,trainOrVal,boost,name
    local currentPerm   = torch.randperm(nSamples)
    local skipped = 0
 
-   --iterator over dataset 
+   --iterator over dataset
    function cdataset:nextboost()
       if boost == 'none' then
             print('boost is not enabled for this dataset')
             error()
-      end 
+      end
             --if boost == 'diff' then
       -- print('add some function that samples based on yprop')
       -- print('+add function to get number of indeces check')
@@ -168,7 +180,7 @@ function mnist.loadConvDataset(fileName, maxLoad, geometry,trainOrVal,boost,name
             end
             --print(ex[2])
             local _,idx = torch.max(sample[2],1)
-            
+
             local pred_prob = myprob[{currentSample-1,idx[1]}]
             --print(currentSample,correct_prob)
             local sampling_prob = 1-pred_prob
@@ -195,9 +207,9 @@ function mnist.loadConvDataset(fileName, maxLoad, geometry,trainOrVal,boost,name
          currentPerm   = torch.randperm(nSamples)
 
       end
-      
+
       currentSample = currentSample + 1
-      return self[ currentPerm[currentSample-1] ]      
+      return self[ currentPerm[currentSample-1] ]
    end
 
    function cdataset:getcurrentsample()
