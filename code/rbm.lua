@@ -245,7 +245,7 @@ function updateweights(rbm,currentsample)
         if rbm.momentum > 0 then 
             rbm.vW:add( rbm.dW ):mul(rbm.momentum)
             rbm.vb:add( rbm.db ):mul(rbm.momentum) 
-            rbm.vc:mad( rbm.dc ):mul(rbm.momentum) 
+            rbm.vc:add( rbm.dc ):mul(rbm.momentum) 
 
             -- add momentum to dW 
             rbm.dW:add(rbm.vW)
